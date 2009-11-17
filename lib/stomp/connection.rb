@@ -25,7 +25,7 @@ module Stomp
     #   stomp://user:pass@host:port
     #   stomp://user:pass@host.domain.tld:port
     #
-    def initialize(login = '', passcode = '', host = 'localhost', port = 61613, reliable = false, reconnect_delay = 5, connect_headers = {})
+    def initialize(login = '', passcode = '', host = 'localhost', port = 61613, reliable = false, reconnect_delay = 5, connect_headers = {}, failover = nil)
       @host = host
       @port = port
       @login = login
@@ -39,7 +39,17 @@ module Stomp
       @closed = false
       @subscriptions = {}
       @failure = nil
+      @connection_attempts = 0
+      
+      @failover = failover
       socket
+    end
+    
+    def Connection.open_with_failover(failover, reconnect_delay = 5, connect_headers = {})
+      master_data = failover[:hosts].shift
+      failover[:hosts] << master_data
+      
+      Connection.new(master_data[:login], master_data[:passcode], master_data[:host], master_data[:port], reliable = true, failover[:initialReconnectDelay], connect_headers, failover)
     end
 
     # Syntactic sugar for 'Connection.new' See 'initialize' for usage.
@@ -50,7 +60,11 @@ module Stomp
     def socket
       # Need to look into why the following synchronize does not work.
       #@read_semaphore.synchronize do
+      
         s = @socket;
+        
+        s = nil unless is_connected?
+        
         while s.nil? || !@failure.nil?
           @failure = nil
           begin
@@ -62,17 +76,61 @@ module Stomp
             @connect = _receive(s)
             # replay any subscriptions.
             @subscriptions.each { |k,v| _transmit(s, "SUBSCRIBE", v) }
+            
+            @connection_attempts = 0
           rescue
             @failure = $!;
             s=nil;
             raise unless @reliable
-            $stderr.print "connect failed: " + $! +" will retry in #{@reconnect_delay}\n";
+            $stderr.print "connect to #{@host} failed: " + $! +" will retry in #{@reconnect_delay}\n";
+
+            raise "Max number of reconnection attempts reached" if max_reconnect_attempts?
+
             sleep(@reconnect_delay);
+            
+            @connection_attempts += 1
+            
+            if @failover
+              change_master
+              increase_reconnect_delay
+            end
           end
         end
         @socket = s
         return s;
       #end
+    end
+    
+    def is_connected?
+      begin
+        TCPSocket.open @host, @port
+        true
+      rescue
+        false
+      end
+    end
+    
+    def change_master
+      @failover[:hosts].shuffle! if @failover[:randomize]
+      
+      # Set first as master and send it to the end of array
+      master_data = @failover[:hosts].shift
+      @failover[:hosts] << master_data
+      
+      @host = master_data[:host]
+      @port = master_data[:port]
+      @login = master_data[:login]
+      @passcode = master_data[:passcode]
+    end
+    
+    def max_reconnect_attempts?
+      @failover && @failover[:maxReconnectAttempts] && @failover[:maxReconnectAttempts] != 0 && @failover[:maxReconnectAttempts] > @connection_attempts
+    end
+    
+    def increase_reconnect_delay
+      @reconnect_delay = (@reconnect_delay * @failover[:backOffMultiplier]) if @failover[:useExponentialBackOff]
+      
+      @reconnect_delay = @failover[:maxReconnectDelay] if @reconnect_delay > @failover[:maxReconnectDelay]
     end
 
     # Is this connection open?
@@ -233,7 +291,7 @@ module Stomp
           rescue
             @failure = $!;
             raise unless @reliable
-            $stderr.print "transmit failed: " + $!+"\n";
+            $stderr.print "transmit to #{@host} failed: " + $!+"\n";
           end
         end
       end

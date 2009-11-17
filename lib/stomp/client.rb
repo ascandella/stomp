@@ -46,6 +46,38 @@ module Stomp
         @host = $3
         @port = $4.to_i
         @reliable = false
+      when /^failover:\/\/\(stomp:\/\/([\w\.]*):(\w*)@([\w\.]+):(\d+),stomp:\/\/([\w\.]*):(\w*)@([\w\.]+):(\d+)\)(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)
+        master = {}
+        @login = master[:login] = $1
+        @passcode = master[:passcode] = $2
+        @host = master[:host] = $3
+        @port = master[:port] = $4.to_i
+        
+        slave = {}
+        
+        slave[:login] = $5
+        slave[:passcode] = $6
+        slave[:host] = $7
+        slave[:port] = $8.to_i
+        
+        parameters = $10 || ""
+        
+        parts = parameters.split(/&|=/)
+        parameters = Hash[*parts]
+        
+        @failover = {}
+        @failover[:hosts] = [master, slave]
+        
+        @failover[:initialReconnectDelay] = (parameters["initialReconnectDelay"] || 10).to_f / 1000 # In ms
+        @failover[:maxReconnectDelay] = (parameters["maxReconnectDelay"] || 30000 ).to_f / 1000 # In ms
+        @failover[:useExponentialBackOff] = !(parameters["useExponentialBackOff"] == "false") # Default: true
+        @failover[:backOffMultiplier] = (parameters["backOffMultiplier"] || 2 ).to_i
+        @failover[:maxReconnectAttempts] = (parameters["maxReconnectAttempts"] || 0 ).to_i
+        @failover[:randomize] = parameters["randomize"] == "true" # Default: false
+        @failover[:backup] = false # Not implemented yet: I'm using a master X slave solution
+        @failover[:timeout] = -1 # Not implemented yet: a "timeout(5) do ... end" would do the trick, feel free
+                
+        @reliable = true
       else
         @login = login
         @passcode = passcode
@@ -60,7 +92,13 @@ module Stomp
 
       @id_mutex = Mutex.new
       @ids = 1
-      @connection = Connection.new(@login, @passcode, @host, @port, @reliable)
+
+      if @failover
+        @connection = Connection.open_with_failover(@failover)
+      else
+        @connection = Connection.new(@login, @passcode, @host, @port, @reliable)
+      end
+      
       @listeners = {}
       @receipt_listeners = {}
       @running = true
