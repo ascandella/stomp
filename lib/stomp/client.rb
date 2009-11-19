@@ -7,7 +7,7 @@ module Stomp
   # in that thread if you have much message volume.
   class Client
 
-    attr_reader :login, :passcode, :host, :port, :reliable, :running
+    attr_reader :login, :passcode, :host, :port, :reliable, :running, :failover
 
     # A new Client object can be initialized using two forms:
     #
@@ -32,7 +32,7 @@ module Stomp
 
       # Parse stomp:// URL's or set positional params
       case login
-      when /stomp:\/\/([\w\.]+):(\d+)/ # e.g. stomp://host:port
+      when /^stomp:\/\/([\w\.]+):(\d+)/ # e.g. stomp://host:port
         # grabs the matching positions out of the regex which are stored as
         # $1 (host), $2 (port), etc
         @login = ''
@@ -40,27 +40,27 @@ module Stomp
         @host = $1
         @port = $2.to_i
         @reliable = false
-      when /stomp:\/\/([\w\.]+):(\w+)@([\w\.]+):(\d+)/ # e.g. stomp://login:passcode@host:port
+      when /^stomp:\/\/([\w\.]+):(\w+)@([\w\.]+):(\d+)/ # e.g. stomp://login:passcode@host:port
         @login = $1
         @passcode = $2
         @host = $3
         @port = $4.to_i
         @reliable = false
-      when /^failover:\/\/\(stomp:\/\/([\w\.]*):(\w*)@([\w\.]+):(\d+),stomp:\/\/([\w\.]*):(\w*)@([\w\.]+):(\d+)\)(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)
+      when /^failover:(\/\/)?\(stomp:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+),stomp:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\)(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)
         master = {}
-        @login = master[:login] = $1
-        @passcode = master[:passcode] = $2
-        @host = master[:host] = $3
-        @port = master[:port] = $4.to_i
+        @login = master[:login] = $3 || ""
+        @passcode = master[:passcode] = $4 || ""
+        @host = master[:host] = $5
+        @port = master[:port] = $6.to_i
         
         slave = {}
         
-        slave[:login] = $5
-        slave[:passcode] = $6
-        slave[:host] = $7
-        slave[:port] = $8.to_i
+        slave[:login] = $8 || ""
+        slave[:passcode] = $9 || ""
+        slave[:host] = $10
+        slave[:port] = $11.to_i
         
-        parameters = $10 || ""
+        parameters = $13 || ""
         
         parts = parameters.split(/&|=/)
         parameters = Hash[*parts]
