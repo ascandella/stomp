@@ -63,7 +63,7 @@ module Stomp
       
         s = @socket;
         
-        s = nil unless is_connected?
+        s = nil unless connected?
         
         while s.nil? || !@failure.nil?
           @failure = nil
@@ -82,7 +82,7 @@ module Stomp
             @failure = $!;
             s=nil;
             raise unless @reliable
-            $stderr.print "connect to #{@host} failed: " + $! +" will retry in #{@reconnect_delay}\n";
+            $stderr.print "connect to #{@host} failed: " + $! +" will retry(##{@connection_attempts}) in #{@reconnect_delay}\n";
 
             raise "Max number of reconnection attempts reached" if max_reconnect_attempts?
 
@@ -101,7 +101,7 @@ module Stomp
       #end
     end
     
-    def is_connected?
+    def connected?
       begin
         TCPSocket.open @host, @port
         true
@@ -124,7 +124,7 @@ module Stomp
     end
     
     def max_reconnect_attempts?
-      @failover && @failover[:maxReconnectAttempts] && @failover[:maxReconnectAttempts] != 0 && @failover[:maxReconnectAttempts] > @connection_attempts
+      !(@failover.nil? || @failover[:maxReconnectAttempts].nil?) && @failover[:maxReconnectAttempts] != 0 && @connection_attempts > @failover[:maxReconnectAttempts]
     end
     
     def increase_reconnect_delay
