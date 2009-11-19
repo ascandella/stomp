@@ -46,27 +46,33 @@ module Stomp
         @host = $3
         @port = $4.to_i
         @reliable = false
-      when /^failover:(\/\/)?\(stomp:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+),stomp:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\)(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)
+      when /^failover:(\/\/)?\(stomp:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)(,stomp:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\))+(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)
         master = {}
         @login = master[:login] = $3 || ""
         @passcode = master[:passcode] = $4 || ""
         @host = master[:host] = $5
         @port = master[:port] = $6.to_i
         
-        slave = {}
+        hosts = [master]
         
-        slave[:login] = $8 || ""
-        slave[:passcode] = $9 || ""
-        slave[:host] = $10
-        slave[:port] = $11.to_i
-        
-        parameters = $13 || ""
-        
+        parameters = $14 || ""
         parts = parameters.split(/&|=/)
         parameters = Hash[*parts]
         
+        slave_match = /,stomp:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\)/
+        login.scan(slave_match).each do |match|
+          slave = {}
+          
+          slave[:login] =  match[1] || ""
+          slave[:passcode] = match[2] || ""
+          slave[:host] = match[3]
+          slave[:port] = match[4].to_i
+          
+          hosts << slave
+        end
+        
         @failover = {}
-        @failover[:hosts] = [master, slave]
+        @failover[:hosts] = hosts
         
         @failover[:initialReconnectDelay] = (parameters["initialReconnectDelay"] || 10).to_f / 1000 # In ms
         @failover[:maxReconnectDelay] = (parameters["maxReconnectDelay"] || 30000 ).to_f / 1000 # In ms

@@ -199,11 +199,12 @@ describe Stomp::Client do
     end
     
     it "should properly parse a URL with failover:" do
-      url = "failover:(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)"
+      url = "failover:(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost1:61617),stomp://login3:passcode3@remotehost2:61618)"
       
       @failover[:hosts] = [
         {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616},
-        {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617}
+        {:login => "login2", :passcode => "passcode2", :host => "remotehost1", :port => 61617},
+        {:login => "login3", :passcode => "passcode3", :host => "remotehost2", :port => 61618}
       ]
       
       Stomp::Connection.should_receive(:open_with_failover).with(@failover)
