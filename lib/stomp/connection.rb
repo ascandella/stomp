@@ -128,9 +128,12 @@ module Stomp
     end
     
     def increase_reconnect_delay
-      @reconnect_delay = (@reconnect_delay * @failover[:backOffMultiplier]) if @failover[:useExponentialBackOff]
+
+      @reconnect_delay *= @failover[:backOffMultiplier] if @failover[:useExponentialBackOff] 
       
       @reconnect_delay = @failover[:maxReconnectDelay] if @reconnect_delay > @failover[:maxReconnectDelay]
+      
+      @reconnect_delay
     end
 
     # Is this connection open?

@@ -49,9 +49,39 @@ describe Stomp::Connection do
     end
 
     describe "when called to increase reconnect delay" do
-      it "should exponentialy increase when useExponentialBackOff is true"
-      it "should linearly increase when useExponentialBackOff is false"
-      it "should not increase when maxReconnectDelay is reached"
+      it "should exponentialy increase when useExponentialBackOff is true" do
+        connection = Stomp::Connection.open_with_failover(@failover)
+        connection.increase_reconnect_delay.should == 0.02
+        connection.increase_reconnect_delay.should == 0.04
+        connection.increase_reconnect_delay.should == 0.08
+      end
+      it "should not increase when useExponentialBackOff is false" do
+        @failover[:useExponentialBackOff] = false
+        connection = Stomp::Connection.open_with_failover(@failover)
+        connection.increase_reconnect_delay.should == 0.01
+        connection.increase_reconnect_delay.should == 0.01
+      end
+      it "should not increase when maxReconnectDelay is reached" do
+        @failover[:initialReconnectDelay] = 8.0
+        connection = Stomp::Connection.open_with_failover(@failover)
+        connection.increase_reconnect_delay.should == 16.0
+        connection.increase_reconnect_delay.should == 30.0
+      end
+      
+      it "should change to next host on socket error" do
+        connection = Stomp::Connection.open_with_failover(@failover)
+        
+        #connected?
+        TCPSocket.should_receive(:open).and_raise "exception"
+        #retries the same host
+        TCPSocket.should_receive(:open).and_raise "exception"
+
+        #tries the new host
+        TCPSocket.should_receive(:open).and_return mock("tcp_socket")
+
+        connection.socket
+        connection.instance_variable_get(:@host).should == "remotehost"
+      end
     end
     
   end
