@@ -46,27 +46,29 @@ module Stomp
         @host = $3
         @port = $4.to_i
         @reliable = false
-      when /^failover:(\/\/)?\(stomp:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)(,stomp:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\))+(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)
+      when /^failover:(\/\/)?\(stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)(,stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\))+(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)
         master = {}
-        @login = master[:login] = $3 || ""
-        @passcode = master[:passcode] = $4 || ""
-        @host = master[:host] = $5
-        @port = master[:port] = $6.to_i
+        
+        master[:ssl] = !$2.nil?
+        @login = master[:login] = $4 || ""
+        @passcode = master[:passcode] = $5 || ""
+        @host = master[:host] = $6
+        @port = master[:port] = $7.to_i
         
         hosts = [master]
         
-        parameters = $14 || ""
+        parameters = $16 || ""
         parts = parameters.split(/&|=/)
         parameters = Hash[*parts]
         
-        slave_match = /,stomp:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\)/
+        slave_match = /,stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\)/
         login.scan(slave_match).each do |match|
           slave = {}
-          
-          slave[:login] =  match[1] || ""
-          slave[:passcode] = match[2] || ""
-          slave[:host] = match[3]
-          slave[:port] = match[4].to_i
+          slave[:ssl] = !match[0].nil?
+          slave[:login] =  match[2] || ""
+          slave[:passcode] = match[3] || ""
+          slave[:host] = match[4]
+          slave[:port] = match[5].to_i
           
           hosts << slave
         end

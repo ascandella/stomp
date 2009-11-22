@@ -40,6 +40,7 @@ module Stomp
       @subscriptions = {}
       @failure = nil
       @connection_attempts = 0
+	  @ssl = false
       
       @failover = failover
       socket
@@ -68,10 +69,11 @@ module Stomp
         while s.nil? || !@failure.nil?
           @failure = nil
           begin
-            s = TCPSocket.open @host, @port
-	    headers = @connect_headers.clone
-	    headers[:login] = @login
-	    headers[:passcode] = @passcode
+            s = open_socket
+			
+	        headers = @connect_headers.clone
+	        headers[:login] = @login
+	        headers[:passcode] = @passcode
             _transmit(s, "CONNECT", headers)
             @connect = _receive(s)
             # replay any subscriptions.
@@ -109,6 +111,15 @@ module Stomp
         false
       end
     end
+
+	def open_socket
+	  return TCPSocket.open @host, @port unless @ssl
+
+	  tcp_socket = TCPSocket.new @host, @port
+	  ssl = OpenSSL::SSL::SSLSocket.new(tcp_socket)
+	  ssl.connect
+	  ssl
+	end
     
     def change_master
       @failover[:hosts].shuffle! if @failover[:randomize]
@@ -121,6 +132,7 @@ module Stomp
       @port = master_data[:port]
       @login = master_data[:login]
       @passcode = master_data[:passcode]
+      @ssl = master_data[:ssl]
     end
     
     def max_reconnect_attempts?
