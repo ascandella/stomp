@@ -4,7 +4,7 @@ module Stomp
   # synchronous receives
   class Connection
 
-
+    alias :obj_send :send
     # A new Connection object accepts the following parameters:
     #
     #   login             (String,  default : '')
@@ -25,32 +25,46 @@ module Stomp
     #   stomp://user:pass@host:port
     #   stomp://user:pass@host.domain.tld:port
     #
-    def initialize(login = '', passcode = '', host = 'localhost', port = 61613, reliable = false, reconnect_delay = 5, connect_headers = {}, failover = nil)
-      @host = host
-      @port = port
-      @login = login
-      @passcode = passcode
+    def initialize(login = '', passcode = '', host = 'localhost', port = 61613, reliable = false, reconnect_delay = 5, connect_headers = {})
+      if login.is_a?(Hash)
+        hashed_initialize(login)
+      else
+        @host = host
+        @port = port
+        @login = login
+        @passcode = passcode
+        @reliable = reliable
+        @reconnect_delay = reconnect_delay
+        @connect_headers = connect_headers
+        @ssl = false
+        @failover = nil
+      end
+      
       @transmit_semaphore = Mutex.new
       @read_semaphore = Mutex.new
       @socket_semaphore = Mutex.new
-      @reliable = reliable
-      @reconnect_delay = reconnect_delay
-      @connect_headers = connect_headers
+      
       @closed = false
       @subscriptions = {}
       @failure = nil
       @connection_attempts = 0
-	  @ssl = false
       
-      @failover = failover
       socket
     end
     
-    def Connection.open_with_failover(failover, reconnect_delay = 5, connect_headers = {})
-      master_data = failover[:hosts].shift
-      failover[:hosts] << master_data
+    def hashed_initialize(params)
+      @failover = params
+      @reliable = true
+      @reconnect_delay = @failover[:initialReconnectDelay]
+      @connect_headers = params[:headers] || {}
       
-      Connection.new(master_data[:login], master_data[:passcode], master_data[:host], master_data[:port], reliable = true, failover[:initialReconnectDelay], connect_headers, failover)
+      change_master
+    end
+    
+    def Connection.open_with_failover(failover, connect_headers = {})
+      failover[:headers] = connect_headers
+      
+      Connection.new(failover)
     end
 
     # Syntactic sugar for 'Connection.new' See 'initialize' for usage.
@@ -114,7 +128,8 @@ module Stomp
 
 	def open_socket
 	  return TCPSocket.open @host, @port unless @ssl
-
+    
+    require 'openssl'
 	  tcp_socket = TCPSocket.new @host, @port
 	  ssl = OpenSSL::SSL::SSLSocket.new(tcp_socket)
 	  ssl.connect

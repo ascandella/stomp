@@ -8,6 +8,7 @@ module Stomp
   class Client
 
     attr_reader :login, :passcode, :host, :port, :reliable, :running, :failover
+    alias :obj_send :send
 
     # A new Client object can be initialized using two forms:
     #
@@ -32,58 +33,32 @@ module Stomp
 
       # Parse stomp:// URL's or set positional params
       case login
-      when /^stomp:\/\/([\w\.]+):(\d+)/ # e.g. stomp://host:port
-        # grabs the matching positions out of the regex which are stored as
-        # $1 (host), $2 (port), etc
-        @login = ''
-        @passcode = ''
-        @host = $1
-        @port = $2.to_i
-        @reliable = false
-      when /^stomp:\/\/([\w\.]+):(\w+)@([\w\.]+):(\d+)/ # e.g. stomp://login:passcode@host:port
-        @login = $1
-        @passcode = $2
-        @host = $3
-        @port = $4.to_i
+      when /^stomp:\/\/(([\w\.]+):(\w+)@)?([\w\.]+):(\d+)/ # e.g. stomp://login:passcode@host:port or stomp://host:port
+        @login = $2 || ""
+        @passcode = $3 || ""
+        @host = $4
+        @port = $5.to_i
         @reliable = false
       when /^failover:(\/\/)?\(stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)(,stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\))+(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)
+
         master = {}
-        
         master[:ssl] = !$2.nil?
         @login = master[:login] = $4 || ""
         @passcode = master[:passcode] = $5 || ""
         @host = master[:host] = $6
         @port = master[:port] = $7.to_i
         
-        hosts = [master]
+        options = $16 || ""
+        parts = options.split(/&|=/)
+        options = Hash[*parts]
         
-        parameters = $16 || ""
-        parts = parameters.split(/&|=/)
-        parameters = Hash[*parts]
         
-        slave_match = /,stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\)/
-        login.scan(slave_match).each do |match|
-          slave = {}
-          slave[:ssl] = !match[0].nil?
-          slave[:login] =  match[2] || ""
-          slave[:passcode] = match[3] || ""
-          slave[:host] = match[4]
-          slave[:port] = match[5].to_i
-          
-          hosts << slave
-        end
+        hosts = [master] + parse_hosts(login)
         
         @failover = {}
         @failover[:hosts] = hosts
         
-        @failover[:initialReconnectDelay] = (parameters["initialReconnectDelay"] || 10).to_f / 1000 # In ms
-        @failover[:maxReconnectDelay] = (parameters["maxReconnectDelay"] || 30000 ).to_f / 1000 # In ms
-        @failover[:useExponentialBackOff] = !(parameters["useExponentialBackOff"] == "false") # Default: true
-        @failover[:backOffMultiplier] = (parameters["backOffMultiplier"] || 2 ).to_i
-        @failover[:maxReconnectAttempts] = (parameters["maxReconnectAttempts"] || 0 ).to_i
-        @failover[:randomize] = parameters["randomize"] == "true" # Default: false
-        @failover[:backup] = false # Not implemented yet: I'm using a master X slave solution
-        @failover[:timeout] = -1 # Not implemented yet: a "timeout(5) do ... end" would do the trick, feel free
+        @failover.merge! refine_options(options)
                 
         @reliable = true
       else
@@ -131,7 +106,7 @@ module Stomp
       end
 
     end
-
+    
     # Syntactic sugar for 'Client.new' See 'initialize' for usage.
     def self.open(login = '', passcode = '', host = 'localhost', port = 61613, reliable = false)
       Client.new(login, passcode, host, port, reliable)
@@ -246,6 +221,38 @@ module Stomp
         end
         @receipt_listeners[id] = listener
         id
+      end
+      
+      def parse_hosts(url)
+        hosts = []
+        
+        host_match = /,stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\)/
+        url.scan(host_match).each do |match|
+          host = {}
+          host[:ssl] = !match[0].nil?
+          host[:login] =  match[2] || ""
+          host[:passcode] = match[3] || ""
+          host[:host] = match[4]
+          host[:port] = match[5].to_i
+          
+          hosts << host
+        end
+        
+        hosts
+      end
+      
+      def refine_options(options)
+        new_options = {}
+        new_options[:initialReconnectDelay] = (options["initialReconnectDelay"] || 10).to_f / 1000 # In ms
+        new_options[:maxReconnectDelay] = (options["maxReconnectDelay"] || 30000 ).to_f / 1000 # In ms
+        new_options[:useExponentialBackOff] = !(options["useExponentialBackOff"] == "false") # Default: true
+        new_options[:backOffMultiplier] = (options["backOffMultiplier"] || 2 ).to_i
+        new_options[:maxReconnectAttempts] = (options["maxReconnectAttempts"] || 0 ).to_i
+        new_options[:randomize] = options["randomize"] == "true" # Default: false
+        new_options[:backup] = false # Not implemented yet: I'm using a master X slave solution
+        new_options[:timeout] = -1 # Not implemented yet: a "timeout(5) do ... end" would do the trick, feel free
+        
+        new_options
       end
 
   end

@@ -188,8 +188,8 @@ describe Stomp::Client do
       url = "failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)"
 
       @failover[:hosts] = [
-        {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616},
-        {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617}
+        {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false},
+        {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617, :ssl => false}
       ]
       
       Stomp::Connection.should_receive(:open_with_failover).with(@failover)
@@ -202,9 +202,9 @@ describe Stomp::Client do
       url = "failover:(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost1:61617),stomp://login3:passcode3@remotehost2:61618)"
       
       @failover[:hosts] = [
-        {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616},
-        {:login => "login2", :passcode => "passcode2", :host => "remotehost1", :port => 61617},
-        {:login => "login3", :passcode => "passcode3", :host => "remotehost2", :port => 61618}
+        {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false},
+        {:login => "login2", :passcode => "passcode2", :host => "remotehost1", :port => 61617, :ssl => false},
+        {:login => "login3", :passcode => "passcode3", :host => "remotehost2", :port => 61618, :ssl => false}
       ]
       
       Stomp::Connection.should_receive(:open_with_failover).with(@failover)
@@ -217,8 +217,8 @@ describe Stomp::Client do
       url = "failover:(stomp://localhost:61616,stomp://remotehost:61617)"
 
       @failover[:hosts] = [
-        {:login => "", :passcode => "", :host => "localhost", :port => 61616},
-        {:login => "", :passcode => "", :host => "remotehost", :port => 61617}
+        {:login => "", :passcode => "", :host => "localhost", :port => 61616, :ssl => false},
+        {:login => "", :passcode => "", :host => "remotehost", :port => 61617, :ssl => false}
       ]
       
       Stomp::Connection.should_receive(:open_with_failover).with(@failover)
@@ -231,8 +231,8 @@ describe Stomp::Client do
       url = "failover:(stomp://:@localhost:61616,stomp://:@remotehost:61617)"
       
       @failover[:hosts] = [
-        {:login => "", :passcode => "", :host => "localhost", :port => 61616},
-        {:login => "", :passcode => "", :host => "remotehost", :port => 61617}
+        {:login => "", :passcode => "", :host => "localhost", :port => 61616, :ssl => false},
+        {:login => "", :passcode => "", :host => "remotehost", :port => 61617, :ssl => false}
       ]
       
       Stomp::Connection.should_receive(:open_with_failover).with(@failover)
@@ -260,8 +260,8 @@ describe Stomp::Client do
       }
       
       @failover[:hosts] = [
-        {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616},
-        {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617}
+        {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false},
+        {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617, :ssl => false}
       ]
       
       Stomp::Connection.should_receive(:open_with_failover).with(@failover)
