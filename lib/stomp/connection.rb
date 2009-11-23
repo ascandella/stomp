@@ -16,7 +16,7 @@ module Stomp
     #
     #   e.g. c = Client.new("username", "password", "localhost", 61613, true)
     #
-# TODO
+    # TODO
     # Stomp URL :
     #   A Stomp URL must begin with 'stomp://' and can be in one of the following forms:
     #
@@ -130,8 +130,24 @@ module Stomp
 	  return TCPSocket.open @host, @port unless @ssl
     
     require 'openssl'
+    
+    ctx = OpenSSL::SSL::SSLContext.new
+    
+    # For client certificate authentication:
+    # key_path = ENV["STOMP_KEY_PATH"] || "~/stomp_keys"
+    # ctx.cert = OpenSSL::X509::Certificate.new("#{key_path}/client.cer")
+    # ctx.key = OpenSSL::PKey::RSA.new("#{key_path}/client.keystore")
+    
+    # For server certificate authentication:
+    # truststores = OpenSSL::X509::Store.new
+    # truststores.add_file("#{key_path}/client.ts")
+    # ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER
+    # ctx.cert_store = truststores
+    
+    ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE  
+    
 	  tcp_socket = TCPSocket.new @host, @port
-	  ssl = OpenSSL::SSL::SSLSocket.new(tcp_socket)
+	  ssl = OpenSSL::SSL::SSLSocket.new(tcp_socket, ctx)
 	  ssl.connect
 	  ssl
 	end

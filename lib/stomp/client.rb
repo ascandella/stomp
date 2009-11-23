@@ -39,7 +39,7 @@ module Stomp
         @host = $4
         @port = $5.to_i
         @reliable = false
-      when /^failover:(\/\/)?\(stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)(,stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\))+(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)
+      when /^failover:(\/\/)?\(stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)(,stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\))+(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)?option1=param
 
         master = {}
         master[:ssl] = !$2.nil?
@@ -82,28 +82,7 @@ module Stomp
         @connection = Connection.new(@login, @passcode, @host, @port, @reliable)
       end
       
-      @listeners = {}
-      @receipt_listeners = {}
-      @running = true
-      @replay_messages_by_txn = {}
-
-      @listener_thread = Thread.start do
-        while @running
-          message = @connection.receive
-          case
-          when message.nil?
-            break
-          when message.command == 'MESSAGE'
-            if listener = @listeners[message.headers['destination']]
-              listener.call(message)
-            end
-          when message.command == 'RECEIPT'
-            if listener = @receipt_listeners[message.headers['receipt-id']]
-              listener.call(message)
-            end
-          end
-        end
-      end
+      start_listeners
 
     end
     
@@ -254,7 +233,32 @@ module Stomp
         
         new_options
       end
+      
+      def start_listeners
+        @listeners = {}
+        @receipt_listeners = {}
+        @running = true
+        @replay_messages_by_txn = {}
 
+        @listener_thread = Thread.start do
+          while @running
+            message = @connection.receive
+            case
+            when message.nil?
+              break
+            when message.command == 'MESSAGE'
+              if listener = @listeners[message.headers['destination']]
+                listener.call(message)
+              end
+            when message.command == 'RECEIPT'
+              if listener = @receipt_listeners[message.headers['receipt-id']]
+                listener.call(message)
+              end
+            end
+          end
+        end
+        
+      end
   end
 end
 
