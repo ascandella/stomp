@@ -15,6 +15,40 @@ An implementation of the Stomp protocol (http://stomp.codehaus.org/Protocol) for
       p msg
     end
 
+===Failover + SSL Example Usage
+
+    options = "initialReconnectDelay=5000&randomize=false&useExponentialBackOff=false"
+    
+    #remotehost1 uses SSL, remotehost2 doesn't
+    client = Stomp::Client.new("failover:(stomp+ssl://login1:passcode1@remotehost1:61612,stomp://login2:passcode2@remotehost2:61613)?#{options}")
+    
+    client.send("/my/queue", "hello world!")
+    client.subscribe("/my/queue") do |msg|
+      p msg
+    end
+    
+===Stomp::Connection Usage
+
+    hash = {
+      :hosts => [
+        {:login => "login1", :passcode => "passcode1", :host => "remotehost1", :port => 61612, :ssl => true},
+        {:login => "login2", :passcode => "passcode2", :host => "remotehost2", :port => 61613, :ssl => false},
+        
+      ],
+      # Default parameters, don't need to be set
+      :initialReconnectDelay => 0.01,
+      :maxReconnectDelay => 30.0,
+      :useExponentialBackOff => true,
+      :backOffMultiplier => 2,
+      :maxReconnectAttempts => 0,
+      :randomize => false,
+      :backup => false,
+      :timeout => -1,
+      :connect_headers => {}
+    }
+    
+    connection = Stomp::Connection.new(hash)
+
 ===Contact info 
 
 Up until March 2009 the project was maintained and primarily developed by Brian McCallister. 

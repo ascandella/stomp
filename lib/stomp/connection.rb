@@ -14,7 +14,26 @@ module Stomp
     #   reliable          (Boolean, default : false)
     #   reconnect_delay   (Integer, default : 5)
     #
-    #   e.g. c = Client.new("username", "password", "localhost", 61613, true)
+    #   e.g. c = Connection.new("username", "password", "localhost", 61613, true)
+    #
+    # Hash:
+    #
+    #   hash = {
+    #     :hosts => [
+    #       {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false},
+    #       {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617, :ssl => false}
+    #     ],
+    #     :initialReconnectDelay => 0.01,
+    #     :maxReconnectDelay => 30.0,
+    #     :useExponentialBackOff => true,
+    #     :backOffMultiplier => 2,
+    #     :maxReconnectAttempts => 0,
+    #     :randomize => false,
+    #     :backup => false,
+    #     :timeout => -1
+    #   }
+    #
+    #   e.g. c = Connection.new(hash)
     #
     # TODO
     # Stomp URL :
@@ -53,16 +72,17 @@ module Stomp
     end
     
     def hashed_initialize(params)
-      @failover = params
+      
+      @failover = refine_params(params)
       @reliable = true
       @reconnect_delay = @failover[:initialReconnectDelay]
-      @connect_headers = params[:headers] || {}
+      @connect_headers = @failover[:connect_headers]
       
       change_master
     end
     
     def Connection.open_with_failover(failover, connect_headers = {})
-      failover[:headers] = connect_headers
+      failover[:connect_headers] = connect_headers
       
       Connection.new(failover)
     end
@@ -85,9 +105,9 @@ module Stomp
           begin
             s = open_socket
 			
-	        headers = @connect_headers.clone
-	        headers[:login] = @login
-	        headers[:passcode] = @passcode
+	          headers = @connect_headers.clone
+	          headers[:login] = @login
+	          headers[:passcode] = @passcode
             _transmit(s, "CONNECT", headers)
             @connect = _receive(s)
             # replay any subscriptions.
@@ -126,31 +146,50 @@ module Stomp
       end
     end
 
-	def open_socket
-	  return TCPSocket.open @host, @port unless @ssl
-    
-    require 'openssl'
-    
-    ctx = OpenSSL::SSL::SSLContext.new
-    
-    # For client certificate authentication:
-    # key_path = ENV["STOMP_KEY_PATH"] || "~/stomp_keys"
-    # ctx.cert = OpenSSL::X509::Certificate.new("#{key_path}/client.cer")
-    # ctx.key = OpenSSL::PKey::RSA.new("#{key_path}/client.keystore")
-    
-    # For server certificate authentication:
-    # truststores = OpenSSL::X509::Store.new
-    # truststores.add_file("#{key_path}/client.ts")
-    # ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER
-    # ctx.cert_store = truststores
-    
-    ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE  
-    
-	  tcp_socket = TCPSocket.new @host, @port
-	  ssl = OpenSSL::SSL::SSLSocket.new(tcp_socket, ctx)
-	  ssl.connect
-	  ssl
-	end
+	  def open_socket
+	    return TCPSocket.open @host, @port unless @ssl
+      
+      ssl_socket
+	  end
+	  
+	  def ssl_socket
+	    require 'openssl' unless defined?(OpenSSL)
+	    
+	    ctx = OpenSSL::SSL::SSLContext.new
+      
+      # For client certificate authentication:
+      # key_path = ENV["STOMP_KEY_PATH"] || "~/stomp_keys"
+      # ctx.cert = OpenSSL::X509::Certificate.new("#{key_path}/client.cer")
+      # ctx.key = OpenSSL::PKey::RSA.new("#{key_path}/client.keystore")
+      
+      # For server certificate authentication:
+      # truststores = OpenSSL::X509::Store.new
+      # truststores.add_file("#{key_path}/client.ts")
+      # ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      # ctx.cert_store = truststores
+      
+      ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE  
+      
+	    tcp_socket = TCPSocket.new @host, @port
+	    ssl = OpenSSL::SSL::SSLSocket.new(tcp_socket, ctx)
+	    ssl.connect
+	    ssl
+	  end
+	  
+	  def refine_params(params)
+	    {
+	      :initialReconnectDelay => 0.01,
+	      :maxReconnectDelay => 30.0,
+	      :useExponentialBackOff => true,
+	      :backOffMultiplier => 2,
+	      :maxReconnectAttempts => 0,
+	      :randomize => false,
+	      :connect_headers => {},
+	      :backup => false,
+	      :timeout => -1
+	    }.merge(params)
+      
+	  end
     
     def change_master
       @failover[:hosts].shuffle! if @failover[:randomize]
@@ -159,11 +198,18 @@ module Stomp
       master_data = @failover[:hosts].shift
       @failover[:hosts] << master_data
       
-      @host = master_data[:host]
-      @port = master_data[:port]
-      @login = master_data[:login]
-      @passcode = master_data[:passcode]
       @ssl = master_data[:ssl]
+      @host = master_data[:host]
+      @port = master_data[:port] || default_port(@ssl)
+      @login = master_data[:login] || ""
+      @passcode = master_data[:passcode] || ""
+      
+    end
+    
+    def default_port(ssl)
+      return 61612 if ssl
+      
+      61613
     end
     
     def max_reconnect_attempts?
@@ -173,7 +219,6 @@ module Stomp
     def increase_reconnect_delay
 
       @reconnect_delay *= @failover[:backOffMultiplier] if @failover[:useExponentialBackOff] 
-      
       @reconnect_delay = @failover[:maxReconnectDelay] if @reconnect_delay > @failover[:maxReconnectDelay]
       
       @reconnect_delay

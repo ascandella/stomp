@@ -5,8 +5,8 @@ describe Stomp::Connection do
   before(:each) do
     @failover = {
       :hosts => [
-        {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616},
-        {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617}
+        {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false},
+        {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617, :ssl => false}
       ],
       :initialReconnectDelay => 0.01,
       :maxReconnectDelay => 30.0,
@@ -32,7 +32,7 @@ describe Stomp::Connection do
     
   end
 
-  describe "(created with open_with_failover method)" do
+  describe "(created with open_with_failover method/or using a hash)" do
     it "should be reliable" do
       connection = Stomp::Connection.open_with_failover(@failover)
       connection.instance_variable_get(:@reliable).should be_true
@@ -46,6 +46,54 @@ describe Stomp::Connection do
       connection = Stomp::Connection.open_with_failover(@failover)
       connection.change_master
       connection.instance_variable_get(:@host).should == "remotehost"
+    end
+    
+    it "should use default port (61613) if none is given" do
+      hash = {:hosts => [{:login => "login2", :passcode => "passcode2", :host => "remotehost", :ssl => false}]}
+      connection = Stomp::Connection.new hash
+      connection.instance_variable_get(:@port).should == 61613
+    end
+    
+    describe "when using ssl" do
+
+      # Mocking openssl gem    
+      module OpenSSL
+        module SSL
+          VERIFY_NONE = 0
+          
+          class SSLSocket
+          end
+          
+          class SSLContext
+            attr_accessor :verify_mode
+          end
+        end
+      end
+      
+      before(:each) do
+        @hash = {:hosts => [{:login => "login2", :passcode => "passcode2", :host => "remotehost", :ssl => true}]}
+        tcp_socket = mock("tcp_socket")
+        @ssl_socket = mock("ssl_socket")
+        
+        TCPSocket.should_receive(:new).and_return(tcp_socket)
+        OpenSSL::SSL::SSLSocket.should_receive(:new).and_return(@ssl_socket)
+        @ssl_socket.should_receive(:connect)
+      end
+    
+      it "should use ssl socket if ssl use is enabled" do
+        
+        connection = Stomp::Connection.new @hash
+        connection.instance_variable_get(:@socket).should == @ssl_socket
+        
+      end
+    
+      it "should use default port for ssl (61612) if none is given" do
+        
+        connection = Stomp::Connection.new @hash
+        connection.instance_variable_get(:@port).should == 61612
+        
+      end
+      
     end
 
     describe "when called to increase reconnect delay" do
@@ -82,6 +130,66 @@ describe Stomp::Connection do
         connection.socket
         connection.instance_variable_get(:@host).should == "remotehost"
       end
+      
+      it "should use default options if those where not given" do
+        expected_hash = {
+          :hosts => [
+            {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617, :ssl => false},
+            # Once connected the host is sent to the end of array
+            {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false}
+          ],
+          :initialReconnectDelay => 0.01,
+          :maxReconnectDelay => 30.0,
+          :useExponentialBackOff => true,
+          :backOffMultiplier => 2,
+          :maxReconnectAttempts => 0,
+          :randomize => false,
+          :backup => false,
+          :timeout => -1,
+          :connect_headers => {}
+        }
+        
+        used_hash =  {
+          :hosts => [
+            {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false},
+            {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617, :ssl => false}
+          ]
+        }
+        
+        connection = Stomp::Connection.new(used_hash)
+        
+        connection.instance_variable_get(:@failover).should == expected_hash
+      end
+      
+      it "should use the given options instead of default ones" do
+        used_hash = {
+          :hosts => [
+            {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617, :ssl => false},
+            # Once connected the host is sent to the end of array
+            {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false}
+          ],
+          :initialReconnectDelay => 5.0,
+          :maxReconnectDelay => 100.0,
+          :useExponentialBackOff => false,
+          :backOffMultiplier => 3,
+          :maxReconnectAttempts => 10,
+          :randomize => true,
+          :backup => false,
+          :timeout => -1,
+          :connect_headers => {:lerolero => "ronaldo"}
+        }
+        
+        connection = Stomp::Connection.new(used_hash)
+        
+        received_hash = connection.instance_variable_get(:@failover)
+        
+        #Using randomize we can't assure the hosts order
+        received_hash.delete(:hosts)
+        used_hash.delete(:hosts)
+        
+        received_hash.should == used_hash
+      end
+      
     end
     
   end
