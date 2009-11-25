@@ -7,7 +7,7 @@ module Stomp
   # in that thread if you have much message volume.
   class Client
 
-    attr_reader :login, :passcode, :host, :port, :reliable, :running, :failover
+    attr_reader :login, :passcode, :host, :port, :reliable, :running, :parameters
     alias :obj_send :send
 
     # A new Client object can be initialized using two forms:
@@ -31,34 +31,44 @@ module Stomp
     #
     def initialize(login = '', passcode = '', host = 'localhost', port = 61613, reliable = false)
 
-      # Parse stomp:// URL's or set positional params
-      case login
-      when /^stomp:\/\/(([\w\.]+):(\w+)@)?([\w\.]+):(\d+)/ # e.g. stomp://login:passcode@host:port or stomp://host:port
+      # Parse stomp:// URL's or set params
+      if login.is_a?(Hash)
+        @parameters = login
+        
+        first_host = @parameters[:hosts][0]
+        
+        @login = first_host[:login]
+        @passcode = first_host[:passcode]
+        @host = first_host[:host]
+        @port = first_host[:port] || default_port(first_host[:ssl])
+        
+        @reliable = true
+        
+      elsif login =~ /^stomp:\/\/(([\w\.]+):(\w+)@)?([\w\.]+):(\d+)/ # e.g. stomp://login:passcode@host:port or stomp://host:port
         @login = $2 || ""
         @passcode = $3 || ""
         @host = $4
         @port = $5.to_i
         @reliable = false
-      when /^failover:(\/\/)?\(stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)(,stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\))+(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)?option1=param
+      elsif login =~ /^failover:(\/\/)?\(stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)(,stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\))+(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)?option1=param
 
-        master = {}
-        master[:ssl] = !$2.nil?
-        @login = master[:login] = $4 || ""
-        @passcode = master[:passcode] = $5 || ""
-        @host = master[:host] = $6
-        @port = master[:port] = $7.to_i
+        first_host = {}
+        first_host[:ssl] = !$2.nil?
+        @login = first_host[:login] = $4 || ""
+        @passcode = first_host[:passcode] = $5 || ""
+        @host = first_host[:host] = $6
+        @port = first_host[:port] = $7.to_i || default_port(first_host[:ssl])
         
         options = $16 || ""
         parts = options.split(/&|=/)
         options = Hash[*parts]
         
+        hosts = [first_host] + parse_hosts(login)
         
-        hosts = [master] + parse_hosts(login)
+        @parameters = {}
+        @parameters[:hosts] = hosts
         
-        @failover = {}
-        @failover[:hosts] = hosts
-        
-        @failover.merge! refine_options(options)
+        @parameters.merge! filter_options(options)
                 
         @reliable = true
       else
@@ -69,15 +79,13 @@ module Stomp
         @reliable = reliable
       end
 
-      raise ArgumentError if @host.nil? || @host.empty?
-      raise ArgumentError if @port.nil? || @port == '' || @port < 1 || @port > 65535
-      raise ArgumentError unless @reliable.is_a?(TrueClass) || @reliable.is_a?(FalseClass)
+      check_arguments!
 
       @id_mutex = Mutex.new
       @ids = 1
 
-      if @failover
-        @connection = Connection.open_with_failover(@failover)
+      if @parameters
+        @connection = Connection.new(@parameters)
       else
         @connection = Connection.new(@login, @passcode, @host, @port, @reliable)
       end
@@ -202,10 +210,16 @@ module Stomp
         id
       end
       
+      def default_port(ssl)
+        return 61612 if ssl
+        
+        61613
+      end
+      
       def parse_hosts(url)
         hosts = []
         
-        host_match = /,stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\)/
+        host_match = /stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\)/
         url.scan(host_match).each do |match|
           host = {}
           host[:ssl] = !match[0].nil?
@@ -220,13 +234,19 @@ module Stomp
         hosts
       end
       
-      def refine_options(options)
+      def check_arguments!
+        raise ArgumentError if @host.nil? || @host.empty?
+        raise ArgumentError if @port.nil? || @port == '' || @port < 1 || @port > 65535
+        raise ArgumentError unless @reliable.is_a?(TrueClass) || @reliable.is_a?(FalseClass)
+      end
+      
+      def filter_options(options)
         new_options = {}
-        new_options[:initialReconnectDelay] = (options["initialReconnectDelay"] || 10).to_f / 1000 # In ms
-        new_options[:maxReconnectDelay] = (options["maxReconnectDelay"] || 30000 ).to_f / 1000 # In ms
-        new_options[:useExponentialBackOff] = !(options["useExponentialBackOff"] == "false") # Default: true
-        new_options[:backOffMultiplier] = (options["backOffMultiplier"] || 2 ).to_i
-        new_options[:maxReconnectAttempts] = (options["maxReconnectAttempts"] || 0 ).to_i
+        new_options[:initial_reconnect_delay] = (options["initialReconnectDelay"] || 10).to_f / 1000 # In ms
+        new_options[:max_reconnect_delay] = (options["maxReconnectDelay"] || 30000 ).to_f / 1000 # In ms
+        new_options[:use_exponential_back_off] = !(options["useExponentialBackOff"] == "false") # Default: true
+        new_options[:back_off_multiplier] = (options["backOffMultiplier"] || 2 ).to_i
+        new_options[:max_reconnect_attempts] = (options["maxReconnectAttempts"] || 0 ).to_i
         new_options[:randomize] = options["randomize"] == "true" # Default: false
         new_options[:backup] = false # Not implemented yet: I'm using a master X slave solution
         new_options[:timeout] = -1 # Not implemented yet: a "timeout(5) do ... end" would do the trick, feel free

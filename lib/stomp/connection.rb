@@ -23,11 +23,11 @@ module Stomp
     #       {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false},
     #       {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617, :ssl => false}
     #     ],
-    #     :initialReconnectDelay => 0.01,
-    #     :maxReconnectDelay => 30.0,
-    #     :useExponentialBackOff => true,
-    #     :backOffMultiplier => 2,
-    #     :maxReconnectAttempts => 0,
+    #     :initial_reconnect_delay => 0.01,
+    #     :max_reconnect_delay => 30.0,
+    #     :use_exponential_back_off => true,
+    #     :back_off_multiplier => 2,
+    #     :max_reconnect_attempts => 0,
     #     :randomize => false,
     #     :backup => false,
     #     :timeout => -1
@@ -56,7 +56,7 @@ module Stomp
         @reconnect_delay = reconnect_delay
         @connect_headers = connect_headers
         @ssl = false
-        @failover = nil
+        @parameters = nil
       end
       
       @transmit_semaphore = Mutex.new
@@ -73,20 +73,15 @@ module Stomp
     
     def hashed_initialize(params)
       
-      @failover = refine_params(params)
+      @parameters = refine_params(params)
       @reliable = true
-      @reconnect_delay = @failover[:initialReconnectDelay]
-      @connect_headers = @failover[:connect_headers]
+      @reconnect_delay = @parameters[:initial_reconnect_delay]
+      @connect_headers = @parameters[:connect_headers]
       
-      change_master
+      #sets the first host to connect
+      change_host
     end
     
-    def Connection.open_with_failover(failover, connect_headers = {})
-      failover[:connect_headers] = connect_headers
-      
-      Connection.new(failover)
-    end
-
     # Syntactic sugar for 'Connection.new' See 'initialize' for usage.
     def Connection.open(login = '', passcode = '', host = 'localhost', port = 61613, reliable = false, reconnect_delay = 5, connect_headers = {})
       Connection.new(login, passcode, host, port, reliable, reconnect_delay, connect_headers)
@@ -126,8 +121,8 @@ module Stomp
             
             @connection_attempts += 1
             
-            if @failover
-              change_master
+            if @parameters
+              change_host
               increase_reconnect_delay
             end
           end
@@ -177,12 +172,14 @@ module Stomp
 	  end
 	  
 	  def refine_params(params)
+	    params = uncamelized_sym_keys(params)
+	    
 	    {
-	      :initialReconnectDelay => 0.01,
-	      :maxReconnectDelay => 30.0,
-	      :useExponentialBackOff => true,
-	      :backOffMultiplier => 2,
-	      :maxReconnectAttempts => 0,
+	      :initial_reconnect_delay => 0.01,
+	      :max_reconnect_delay => 30.0,
+	      :use_exponential_back_off => true,
+	      :back_off_multiplier => 2,
+	      :max_reconnect_attempts => 0,
 	      :randomize => false,
 	      :connect_headers => {},
 	      :backup => false,
@@ -190,19 +187,29 @@ module Stomp
 	    }.merge(params)
       
 	  end
+	  
+	  def uncamelized_sym_keys(params)
+	    uncamelized = {}
+	    params.each_pair do |key, value|
+	      key = key.to_s.split(/(?=[A-Z])/).join('_').downcase.to_sym
+	      uncamelized[key] = value
+	    end
+	    
+	    uncamelized
+	  end
     
-    def change_master
-      @failover[:hosts].shuffle! if @failover[:randomize]
+    def change_host
+      @parameters[:hosts].shuffle! if @parameters[:randomize]
       
       # Set first as master and send it to the end of array
-      master_data = @failover[:hosts].shift
-      @failover[:hosts] << master_data
+      current_host = @parameters[:hosts].shift
+      @parameters[:hosts] << current_host
       
-      @ssl = master_data[:ssl]
-      @host = master_data[:host]
-      @port = master_data[:port] || default_port(@ssl)
-      @login = master_data[:login] || ""
-      @passcode = master_data[:passcode] || ""
+      @ssl = current_host[:ssl]
+      @host = current_host[:host]
+      @port = current_host[:port] || default_port(@ssl)
+      @login = current_host[:login] || ""
+      @passcode = current_host[:passcode] || ""
       
     end
     
@@ -213,13 +220,13 @@ module Stomp
     end
     
     def max_reconnect_attempts?
-      !(@failover.nil? || @failover[:maxReconnectAttempts].nil?) && @failover[:maxReconnectAttempts] != 0 && @connection_attempts > @failover[:maxReconnectAttempts]
+      !(@parameters.nil? || @parameters[:max_reconnect_attempts].nil?) && @parameters[:max_reconnect_attempts] != 0 && @connection_attempts > @parameters[:max_reconnect_attempts]
     end
     
     def increase_reconnect_delay
 
-      @reconnect_delay *= @failover[:backOffMultiplier] if @failover[:useExponentialBackOff] 
-      @reconnect_delay = @failover[:maxReconnectDelay] if @reconnect_delay > @failover[:maxReconnectDelay]
+      @reconnect_delay *= @parameters[:back_off_multiplier] if @parameters[:use_exponential_back_off] 
+      @reconnect_delay = @parameters[:max_reconnect_delay] if @reconnect_delay > @parameters[:max_reconnect_delay]
       
       @reconnect_delay
     end

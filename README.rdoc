@@ -15,7 +15,7 @@ An implementation of the Stomp protocol (http://stomp.codehaus.org/Protocol) for
       p msg
     end
 
-===Failover + SSL Example Usage
+===Failover + SSL Example URL Usage
 
     options = "initialReconnectDelay=5000&randomize=false&useExponentialBackOff=false"
     
@@ -26,28 +26,33 @@ An implementation of the Stomp protocol (http://stomp.codehaus.org/Protocol) for
     client.subscribe("/my/queue") do |msg|
       p msg
     end
-    
-===Stomp::Connection Usage
 
-    hash = {
+===Hash Usage
+
+  hash = {
       :hosts => [
         {:login => "login1", :passcode => "passcode1", :host => "remotehost1", :port => 61612, :ssl => true},
         {:login => "login2", :passcode => "passcode2", :host => "remotehost2", :port => 61613, :ssl => false},
         
       ],
-      # Default parameters, don't need to be set
-      :initialReconnectDelay => 0.01,
-      :maxReconnectDelay => 30.0,
-      :useExponentialBackOff => true,
-      :backOffMultiplier => 2,
-      :maxReconnectAttempts => 0,
+      # These are the default parameters, don't need to be set
+      :initial_reconnect_delay => 0.01,
+      :max_reconnect_delay => 30.0,
+      :use_exponential_back_off => true,
+      :back_off_multiplier => 2,
+      :max_reconnect_attempts => 0,
       :randomize => false,
       :backup => false,
       :timeout => -1,
       :connect_headers => {}
     }
     
+    # for client
+    client = Stomp::Client.new(hash)
+    
+    # for connection
     connection = Stomp::Connection.new(hash)
+    
 
 ===Contact info 
 

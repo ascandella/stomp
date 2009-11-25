@@ -173,12 +173,12 @@ describe Stomp::Client do
   describe "(created with failover URL)" do
     before(:each) do
       #default options
-      @failover = {
-        :initialReconnectDelay => 0.01,
-        :maxReconnectDelay => 30.0,
-        :useExponentialBackOff => true,
-        :backOffMultiplier => 2,
-        :maxReconnectAttempts => 0,
+      @parameters = {
+        :initial_reconnect_delay => 0.01,
+        :max_reconnect_delay => 30.0,
+        :use_exponential_back_off => true,
+        :back_off_multiplier => 2,
+        :max_reconnect_attempts => 0,
         :randomize => false,
         :backup => false,
         :timeout => -1
@@ -187,58 +187,58 @@ describe Stomp::Client do
     it "should properly parse a URL with failover://" do
       url = "failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)"
 
-      @failover[:hosts] = [
+      @parameters[:hosts] = [
         {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false},
         {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617, :ssl => false}
       ]
       
-      Stomp::Connection.should_receive(:open_with_failover).with(@failover)
+      Stomp::Connection.should_receive(:new).with(@parameters)
       
       client = Stomp::Client.new(url)
-      client.failover.should == @failover
+      client.parameters.should == @parameters
     end
     
     it "should properly parse a URL with failover:" do
       url = "failover:(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost1:61617),stomp://login3:passcode3@remotehost2:61618)"
       
-      @failover[:hosts] = [
+      @parameters[:hosts] = [
         {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false},
         {:login => "login2", :passcode => "passcode2", :host => "remotehost1", :port => 61617, :ssl => false},
         {:login => "login3", :passcode => "passcode3", :host => "remotehost2", :port => 61618, :ssl => false}
       ]
       
-      Stomp::Connection.should_receive(:open_with_failover).with(@failover)
+      Stomp::Connection.should_receive(:new).with(@parameters)
       
       client = Stomp::Client.new(url)
-      client.failover.should == @failover
+      client.parameters.should == @parameters
     end
     
     it "should properly parse a URL without user and password" do
       url = "failover:(stomp://localhost:61616,stomp://remotehost:61617)"
 
-      @failover[:hosts] = [
+      @parameters[:hosts] = [
         {:login => "", :passcode => "", :host => "localhost", :port => 61616, :ssl => false},
         {:login => "", :passcode => "", :host => "remotehost", :port => 61617, :ssl => false}
       ]
       
-      Stomp::Connection.should_receive(:open_with_failover).with(@failover)
+      Stomp::Connection.should_receive(:new).with(@parameters)
       
       client = Stomp::Client.new(url)
-      client.failover.should == @failover
+      client.parameters.should == @parameters
     end
     
     it "should properly parse a URL with user and/or password blank" do
       url = "failover:(stomp://:@localhost:61616,stomp://:@remotehost:61617)"
       
-      @failover[:hosts] = [
+      @parameters[:hosts] = [
         {:login => "", :passcode => "", :host => "localhost", :port => 61616, :ssl => false},
         {:login => "", :passcode => "", :host => "remotehost", :port => 61617, :ssl => false}
       ]
       
-      Stomp::Connection.should_receive(:open_with_failover).with(@failover)
+      Stomp::Connection.should_receive(:new).with(@parameters)
       
       client = Stomp::Client.new(url)
-      client.failover.should == @failover
+      client.parameters.should == @parameters
     end
     
     it "should properly parse a URL with the options query" do
@@ -247,27 +247,27 @@ describe Stomp::Client do
       
       url = "failover:(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)?#{query}"
       
-      #backup and timeout are not implemented yet, when implemented this test should fail
-      @failover = {  
-        :initialReconnectDelay => 5.0,
-        :maxReconnectDelay => 60.0,
-        :useExponentialBackOff => false,
-        :backOffMultiplier => 3,
-        :maxReconnectAttempts => 4,
+      #backup and timeout are not implemented yet
+      @parameters = {  
+        :initial_reconnect_delay => 5.0,
+        :max_reconnect_delay => 60.0,
+        :use_exponential_back_off => false,
+        :back_off_multiplier => 3,
+        :max_reconnect_attempts => 4,
         :randomize => true,
         :backup => false,
         :timeout => -1
       }
       
-      @failover[:hosts] = [
+      @parameters[:hosts] = [
         {:login => "login1", :passcode => "passcode1", :host => "localhost", :port => 61616, :ssl => false},
         {:login => "login2", :passcode => "passcode2", :host => "remotehost", :port => 61617, :ssl => false}
       ]
       
-      Stomp::Connection.should_receive(:open_with_failover).with(@failover)
+      Stomp::Connection.should_receive(:new).with(@parameters)
       
       client = Stomp::Client.new(url)
-      client.failover.should == @failover
+      client.parameters.should == @parameters
     end
     
   end
