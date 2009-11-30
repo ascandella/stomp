@@ -98,11 +98,11 @@ module Stomp
           @failure = nil
           begin
             s = open_socket
-			      @closed = false
-			      
-	          headers = @connect_headers.clone
-	          headers[:login] = @login
-	          headers[:passcode] = @passcode
+            @closed = false
+      
+            headers = @connect_headers.clone
+            headers[:login] = @login
+            headers[:passcode] = @passcode
             _transmit(s, "CONNECT", headers)
             @connect = _receive(s)
             # replay any subscriptions.
@@ -152,62 +152,62 @@ module Stomp
       @closed = true
     end
     
-	  def open_socket
-	    return TCPSocket.open @host, @port unless @ssl
+    def open_socket
+      return TCPSocket.open @host, @port unless @ssl
+        
+        ssl_socket
+    end
+  
+    def ssl_socket
+      require 'openssl' unless defined?(OpenSSL)
       
-      ssl_socket
-	  end
-	  
-	  def ssl_socket
-	    require 'openssl' unless defined?(OpenSSL)
-	    
-	    ctx = OpenSSL::SSL::SSLContext.new
+      ctx = OpenSSL::SSL::SSLContext.new
+        
+        # For client certificate authentication:
+        # key_path = ENV["STOMP_KEY_PATH"] || "~/stomp_keys"
+        # ctx.cert = OpenSSL::X509::Certificate.new("#{key_path}/client.cer")
+        # ctx.key = OpenSSL::PKey::RSA.new("#{key_path}/client.keystore")
+        
+        # For server certificate authentication:
+        # truststores = OpenSSL::X509::Store.new
+        # truststores.add_file("#{key_path}/client.ts")
+        # ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        # ctx.cert_store = truststores
+        
+        ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE  
+        
+      tcp_socket = TCPSocket.new @host, @port
+      ssl = OpenSSL::SSL::SSLSocket.new(tcp_socket, ctx)
+      ssl.connect
+      ssl
+    end
+  
+    def refine_params(params)
+      params = uncamelized_sym_keys(params)
       
-      # For client certificate authentication:
-      # key_path = ENV["STOMP_KEY_PATH"] || "~/stomp_keys"
-      # ctx.cert = OpenSSL::X509::Certificate.new("#{key_path}/client.cer")
-      # ctx.key = OpenSSL::PKey::RSA.new("#{key_path}/client.keystore")
+      {
+        :initial_reconnect_delay => 0.01,
+        :max_reconnect_delay => 30.0,
+        :use_exponential_back_off => true,
+        :back_off_multiplier => 2,
+        :max_reconnect_attempts => 0,
+        :randomize => false,
+        :connect_headers => {},
+        :backup => false,
+        :timeout => -1
+      }.merge(params)
+        
+    end
+    
+    def uncamelized_sym_keys(params)
+      uncamelized = {}
+      params.each_pair do |key, value|
+        key = key.to_s.split(/(?=[A-Z])/).join('_').downcase.to_sym
+        uncamelized[key] = value
+      end
       
-      # For server certificate authentication:
-      # truststores = OpenSSL::X509::Store.new
-      # truststores.add_file("#{key_path}/client.ts")
-      # ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      # ctx.cert_store = truststores
-      
-      ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE  
-      
-	    tcp_socket = TCPSocket.new @host, @port
-	    ssl = OpenSSL::SSL::SSLSocket.new(tcp_socket, ctx)
-	    ssl.connect
-	    ssl
-	  end
-	  
-	  def refine_params(params)
-	    params = uncamelized_sym_keys(params)
-	    
-	    {
-	      :initial_reconnect_delay => 0.01,
-	      :max_reconnect_delay => 30.0,
-	      :use_exponential_back_off => true,
-	      :back_off_multiplier => 2,
-	      :max_reconnect_attempts => 0,
-	      :randomize => false,
-	      :connect_headers => {},
-	      :backup => false,
-	      :timeout => -1
-	    }.merge(params)
-      
-	  end
-	  
-	  def uncamelized_sym_keys(params)
-	    uncamelized = {}
-	    params.each_pair do |key, value|
-	      key = key.to_s.split(/(?=[A-Z])/).join('_').downcase.to_sym
-	      uncamelized[key] = value
-	    end
-	    
-	    uncamelized
-	  end
+      uncamelized
+    end
     
     def change_host
       @parameters[:hosts].shuffle! if @parameters[:randomize]
