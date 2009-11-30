@@ -2,7 +2,7 @@
 
 * Failover support
 * SSL support
-* Stomp::Connection accepts a hash on its constructor
+* Stomp::Connection and Stomp::Client accept a hash on their constructor
 
 == 1.1 2009-27-02
 

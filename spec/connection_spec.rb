@@ -30,6 +30,7 @@ describe Stomp::Connection do
     
     tcp = mock("tcp_socket")
     TCPSocket.stub!(:open).and_return tcp
+    tcp.stub!(:close)
     
   end
 

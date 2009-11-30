@@ -1,7 +1,7 @@
 GEM       = "stomp"
 VER       = "1.1.3"
-AUTHORS   = ["Brian McCallister", 'Marius Mathiesen', 'Thiago Morello']
-EMAILS    = ["brianm@apache.org", 'marius@stones.com', 'morellon@gmail.com']
+AUTHORS   = ["Brian McCallister", 'Marius Mathiesen']
+EMAILS    = ["brianm@apache.org", 'marius@stones.com']
 HOMEPAGE  = "http://stomp.codehaus.org/"
 SUMMARY   = "Ruby client for the Stomp messaging protocol"
 

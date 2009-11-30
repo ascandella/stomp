@@ -27,7 +27,7 @@ An implementation of the Stomp protocol (http://stomp.codehaus.org/Protocol) for
       p msg
     end
 
-===Hash Usage
+===Hash Example Usage
 
   hash = {
       :hosts => [

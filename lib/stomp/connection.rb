@@ -63,7 +63,6 @@ module Stomp
       @read_semaphore = Mutex.new
       @socket_semaphore = Mutex.new
       
-      @closed = false
       @subscriptions = {}
       @failure = nil
       @connection_attempts = 0
@@ -99,7 +98,8 @@ module Stomp
           @failure = nil
           begin
             s = open_socket
-			
+			      @closed = false
+			      
 	          headers = @connect_headers.clone
 	          headers[:login] = @login
 	          headers[:passcode] = @passcode
@@ -134,13 +134,24 @@ module Stomp
     
     def connected?
       begin
-        TCPSocket.open @host, @port
-        true
+        test_socket = TCPSocket.open @host, @port
+        test_socket.close
+        open?
       rescue
         false
       end
     end
-
+    
+    def close_socket
+      begin
+        @socket.close
+      rescue
+        #Ignoring if already closed
+      end
+      
+      @closed = true
+    end
+    
 	  def open_socket
 	    return TCPSocket.open @host, @port unless @ssl
       
@@ -301,7 +312,8 @@ module Stomp
     # Close this connection
     def disconnect(headers = {})
       transmit("DISCONNECT", headers)
-      @closed = true
+      
+      close_socket
     end
 
     # Return a pending message if one is available, otherwise
