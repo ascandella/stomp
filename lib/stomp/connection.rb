@@ -192,6 +192,15 @@ module Stomp
         
     end
     
+    def symbolize_keys(hash)
+      symbolized = {}
+      hash.each_pair do |key, value|
+        symbolized[key.to_sym] = value
+      end
+      
+      symbolized
+    end
+    
     def change_host
       @parameters[:hosts].shuffle! if @parameters[:randomize]
       

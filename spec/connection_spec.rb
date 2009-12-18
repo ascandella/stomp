@@ -16,7 +16,9 @@ describe Stomp::Connection do
       :randomize => false,
       :backup => false,
       :timeout => -1,
-      :connect_headers => {}
+      :connect_headers => {},
+      :dead_letter_queue => "queue/DLQ",
+      :max_redeliveries => 6,
     }
         
     #POG:
@@ -256,7 +258,9 @@ describe Stomp::Connection do
           :randomize => false,
           :backup => false,
           :timeout => -1,
-          :connect_headers => {}
+          :connect_headers => {},
+          :dead_letter_queue => "queue/DLQ",
+          :max_redeliveries => 6
         }
         
         used_hash =  {
