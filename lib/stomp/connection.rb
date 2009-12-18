@@ -183,30 +183,47 @@ module Stomp
     end
   
     def refine_params(params)
-      params = uncamelized_sym_keys(params)
+      params = uncamelize_and_symbolize_keys(params)
       
       {
+        :connect_headers => {},
+        # unack (unreceive) message parameters
+        :dead_letter_queue => "queue/DLQ",
+        :max_redeliveries => 6,
+        # Failover parameters
         :initial_reconnect_delay => 0.01,
         :max_reconnect_delay => 30.0,
         :use_exponential_back_off => true,
         :back_off_multiplier => 2,
         :max_reconnect_attempts => 0,
         :randomize => false,
-        :connect_headers => {},
         :backup => false,
         :timeout => -1
       }.merge(params)
         
     end
     
-    def uncamelized_sym_keys(params)
+    def uncamelize_and_symbolize_keys(hash)
+      symbolize_keys(uncamelize_and_stringfy_keys(hash))
+    end
+    
+    def uncamelize_and_stringfy_keys(hash)
       uncamelized = {}
-      params.each_pair do |key, value|
-        key = key.to_s.split(/(?=[A-Z])/).join('_').downcase.to_sym
-        uncamelized[key] = value
+      hash.each_pair do |key, value|
+        new_key = key.to_s.split(/(?=[A-Z])/).join('_').downcase
+        uncamelized[new_key] = value
       end
       
       uncamelized
+    end
+    
+    def symbolize_keys(hash)
+      symbolized = {}
+      hash.each_pair do |key, value|
+        symbolized[key.to_sym] = value
+      end
+      
+      symbolized
     end
     
     def change_host
@@ -307,6 +324,40 @@ module Stomp
     def send(destination, message, headers = {})
       headers[:destination] = destination
       transmit("SEND", headers, message)
+    end
+    
+    # Send a message back to the source or to the dead letter queue
+    def unreceive(message)
+      # Lets make shure all keys are symbols
+      message.headers = symbolize_keys(message.headers)
+      
+      retry_count = message.headers[:retry_count].to_i || 0
+      message.headers[:retry_count] = retry_count + 1
+      transaction_id = "transaction-#{message.headers[:'message-id']}-#{retry_count}"
+      
+      begin
+        self.begin transaction_id
+        
+        if client_ack?(message)
+          self.ack(message.headers[:'message-id'], :transaction => transaction_id)
+        end
+        
+        if retry_count <= @parameters[:max_redeliveries]
+          self.send(message.headers[:destination], message.body, message.headers.merge(:transaction => transaction_id))
+        else
+          # Poison ack, sending the message to the DLQ
+          self.send(@parameters[:dead_letter_queue], message.body, message.headers.merge(:transaction => transaction_id, :persistent => true))
+        end
+        self.commit transaction_id
+      rescue Exception => exception
+        self.abort transaction_id
+        raise exception
+      end
+    end
+    
+    def client_ack?(message)
+      headers = @subscriptions[message.headers[:destination]]
+      !headers.nil? && headers[:ack] == "client"
     end
 
     # Close this connection
