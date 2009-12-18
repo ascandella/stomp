@@ -1,5 +1,5 @@
 GEM       = "stomp"
-VER       = "1.1.3"
+VER       = "1.1.4"
 AUTHORS   = ["Brian McCallister", 'Marius Mathiesen']
 EMAILS    = ["brianm@apache.org", 'marius@stones.com']
 HOMEPAGE  = "http://stomp.codehaus.org/"

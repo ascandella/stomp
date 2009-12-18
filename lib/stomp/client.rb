@@ -168,7 +168,13 @@ module Stomp
       end
       @connection.ack message.headers['message-id'], headers
     end
-
+    
+    # Unreceive a message, sending it back to its queue or to the DLQ
+    # client acknowledgement ( connection.subscribe "/queue/a", :ack => 'client'g
+    #
+    def unreceive(message)
+      @connection.unreceive message
+    end
     # Send message to destination
     #
     # If a block is given a receipt will be requested and passed to the
