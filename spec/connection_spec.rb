@@ -307,6 +307,27 @@ describe Stomp::Connection do
     
   end
   
+  describe "when checking if connected" do
+    it "should return true if no exceptions are raised" do
+      @connection.connected?.should be_true
+    end
+    it "should return false if any exceptions are raised" do
+      TCPSocket.should_receive(:open).and_raise "exception"
+      @connection.connected?.should be_false
+    end
+  end
+  
+  describe "when closing a socket" do
+    it "should close the tcp connection" do
+      @tcp_socket.should_receive(:close)
+      @connection.close_socket.should be_true
+    end
+    it "should ignore exceptions" do
+      @tcp_socket.should_receive(:close).and_raise "exception"
+      @connection.close_socket.should be_true
+    end
+  end
+
   describe "when checking if max reconnect attempts have been reached" do
     it "should return false if not using failover" do
       host = @parameters[:hosts][0]
