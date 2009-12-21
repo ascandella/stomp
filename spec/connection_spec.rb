@@ -33,7 +33,8 @@ describe Stomp::Connection do
     # clone() does a shallow copy, we want a deep one so we can garantee the hosts order
     normal_parameters = Marshal::load(Marshal::dump(@parameters))
     
-    TCPSocket.stub!(:open).and_return mock("tcp_socket", :close => nil)
+    @tcp_socket = mock(:tcp_socket, :close => nil)
+    TCPSocket.stub!(:open).and_return @tcp_socket
     @connection = Stomp::Connection.new(normal_parameters)
   end
   
@@ -110,13 +111,20 @@ describe Stomp::Connection do
       end
       
       it "should not acknowledge the original message if ack mode is not client or it did not subscribe to the queue" do      
+        @connection.subscribe(@message.headers["destination"], :ack => "client")
+        @connection.should_receive(:ack)
+        @connection.unreceive @message
+        
+        # At this time the message headers are symbolized
+        @connection.unsubscribe(@message.headers[:destination])
         @connection.should_not_receive(:ack)
         @connection.unreceive @message
-        @connection.subscribe(@message.headers["destination"], :ack => "individual")
+        @connection.subscribe(@message.headers[:destination], :ack => "individual")
         @connection.unreceive @message
       end
       
       it "should send the message back to the queue it came" do
+        @connection.subscribe(@message.headers["destination"], :ack => "client")
         @connection.should_receive(:send).with(@message.headers["destination"], @message.body, @retry_headers)
         @connection.unreceive @message
       end
@@ -163,9 +171,9 @@ describe Stomp::Connection do
       
       before(:each) do
         ssl_parameters = {:hosts => [{:login => "login2", :passcode => "passcode2", :host => "remotehost", :ssl => true}]}
-        @ssl_socket = mock("ssl_socket")
+        @ssl_socket = mock(:ssl_socket)
         
-        TCPSocket.should_receive(:new).and_return mock("tcp_socket")
+        TCPSocket.should_receive(:new).and_return mock(:tcp_socket)
         OpenSSL::SSL::SSLSocket.should_receive(:new).and_return(@ssl_socket)
         @ssl_socket.should_receive(:connect)
         
@@ -207,7 +215,7 @@ describe Stomp::Connection do
         #retries the same host
         TCPSocket.should_receive(:open).and_raise "exception"
         #tries the new host
-        TCPSocket.should_receive(:open).and_return mock("tcp_socket")
+        TCPSocket.should_receive(:open).and_return mock(:tcp_socket)
 
         @connection.socket
         @connection.instance_variable_get(:@host).should == "remotehost"
@@ -284,6 +292,17 @@ describe Stomp::Connection do
     it "should return false if any exceptions are raised" do
       TCPSocket.should_receive(:open).and_raise "exception"
       @connection.connected?.should be_false
+    end
+  end
+  
+  describe "when closing a socket" do
+    it "should close the tcp connection" do
+      @tcp_socket.should_receive(:close)
+      @connection.close_socket.should be_true
+    end
+    it "should ignore exceptions" do
+      @tcp_socket.should_receive(:close).and_raise "exception"
+      @connection.close_socket.should be_true
     end
   end
   

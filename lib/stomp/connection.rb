@@ -183,9 +183,9 @@ module Stomp
     end
   
     def refine_params(params)
-      params = uncamelize_and_symbolize_keys(params)
+      params = params.uncamelize_and_symbolize
       
-      {
+      default_params = {
         :connect_headers => {},
         # unack (unreceive) message parameters
         :dead_letter_queue => "queue/DLQ",
@@ -199,31 +199,10 @@ module Stomp
         :randomize => false,
         :backup => false,
         :timeout => -1
-      }.merge(params)
+      }
+      
+      default_params.merge(params)
         
-    end
-    
-    def uncamelize_and_symbolize_keys(hash)
-      symbolize_keys(uncamelize_and_stringfy_keys(hash))
-    end
-    
-    def uncamelize_and_stringfy_keys(hash)
-      uncamelized = {}
-      hash.each_pair do |key, value|
-        new_key = key.to_s.split(/(?=[A-Z])/).join('_').downcase
-        uncamelized[new_key] = value
-      end
-      
-      uncamelized
-    end
-    
-    def symbolize_keys(hash)
-      symbolized = {}
-      hash.each_pair do |key, value|
-        symbolized[key.to_sym] = value
-      end
-      
-      symbolized
     end
     
     def change_host
@@ -328,8 +307,8 @@ module Stomp
     
     # Send a message back to the source or to the dead letter queue
     def unreceive(message)
-      # Lets make shure all keys are symbols
-      message.headers = symbolize_keys(message.headers)
+      # Lets make sure all keys are symbols
+      message.headers = message.headers.symbolize
       
       retry_count = message.headers[:retry_count].to_i || 0
       message.headers[:retry_count] = retry_count + 1
@@ -399,6 +378,31 @@ module Stomp
         super_result = __old_receive()
       end
       return super_result
+    end
+    
+    class ::Hash
+      def uncamelize_and_symbolize
+        self.uncamelize_and_stringfy.symbolize
+      end
+
+      def uncamelize_and_stringfy
+        uncamelized = {}
+        self.each_pair do |key, value|
+          new_key = key.to_s.split(/(?=[A-Z])/).join('_').downcase
+          uncamelized[new_key] = value
+        end
+
+        uncamelized
+      end
+
+      def symbolize
+        symbolized = {}
+        self.each_pair do |key, value|
+          symbolized[key.to_sym] = value
+        end
+
+        symbolized
+      end
     end
 
     private
