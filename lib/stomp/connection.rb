@@ -177,9 +177,6 @@ module Stomp
       
       default_params = {
         :connect_headers => {},
-        # unack (unreceive) message parameters
-        :dead_letter_queue => "queue/DLQ",
-        :max_redeliveries => 6,
         # Failover parameters
         :initial_reconnect_delay => 0.01,
         :max_reconnect_delay => 30.0,
@@ -289,6 +286,7 @@ module Stomp
 
     # Send message to destination
     #
+    # To disable content length header ( :suppress_content_length => true )
     # Accepts a transaction header ( :transaction => 'some_transaction_id' )
     def send(destination, message, headers = {})
       headers[:destination] = destination
@@ -296,7 +294,11 @@ module Stomp
     end
     
     # Send a message back to the source or to the dead letter queue
-    def unreceive(message)
+    #
+    # Accepts a dead letter queue option ( :dead_letter_queue => "/queue/DLQ" )
+    # Accepts a limit number of redeliveries option ( :max_redeliveries => 6 )
+    def unreceive(message, options = {})
+      options = { :dead_letter_queue => "/queue/DLQ", :max_redeliveries => 6 }.merge options
       # Lets make sure all keys are symbols
       message.headers = message.headers.symbolize
       
@@ -311,11 +313,11 @@ module Stomp
           self.ack(message.headers[:'message-id'], :transaction => transaction_id)
         end
         
-        if retry_count <= @parameters[:max_redeliveries]
+        if retry_count <= options[:max_redeliveries]
           self.send(message.headers[:destination], message.body, message.headers.merge(:transaction => transaction_id))
         else
           # Poison ack, sending the message to the DLQ
-          self.send(@parameters[:dead_letter_queue], message.body, message.headers.merge(:transaction => transaction_id, :persistent => true))
+          self.send(options[:dead_letter_queue], message.body, message.headers.merge(:transaction => transaction_id, :persistent => true))
         end
         self.commit transaction_id
       rescue Exception => exception
@@ -453,9 +455,16 @@ module Stomp
 
       def _transmit(s, command, headers = {}, body = '')
         @transmit_semaphore.synchronize do
-          s.puts command
+          # ActiveMQ interprets every message as a BinaryMessage 
+          # if content_length header is included. 
+          # Using :suppress_content_length => true will suppress this behaviour
+          # and ActiveMQ will interpret the message as a TextMessage.
+          # For more information refer to http://juretta.com/log/2009/05/24/activemq-jms-stomp/
+          suppress_content_length = headers.delete :suppress_content_length
+          headers['content-length'] = "#{body.length}" unless suppress_content_length
+          
+          s.puts command  
           headers.each {|k,v| s.puts "#{k}:#{v}" }
-          s.puts "content-length: #{body.length}"
           s.puts "content-type: text/plain; charset=UTF-8"
           s.puts
           s.write body

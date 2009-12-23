@@ -16,24 +16,19 @@ describe Stomp::Connection do
       :randomize => false,
       :backup => false,
       :timeout => -1,
-      :connect_headers => {},
-      :dead_letter_queue => "queue/DLQ",
-      :max_redeliveries => 6,
+      :connect_headers => {}
     }
         
     #POG:
     class Stomp::Connection
       def _receive( s )
       end
-      
-      def _transmit(s, command, headers = {}, body = '')
-      end
     end
     
     # clone() does a shallow copy, we want a deep one so we can garantee the hosts order
     normal_parameters = Marshal::load(Marshal::dump(@parameters))
     
-    @tcp_socket = mock(:tcp_socket, :close => nil)
+    @tcp_socket = mock(:tcp_socket, :close => nil, :puts => nil, :write => nil)
     TCPSocket.stub!(:open).and_return @tcp_socket
     @connection = Stomp::Connection.new(normal_parameters)
   end
@@ -77,14 +72,27 @@ describe Stomp::Connection do
       @connection.instance_variable_get(:@port).should == 61613
     end
     
-    describe "when unacknowledging a message" do
-      
-      class FakeMessage
-        attr_accessor :headers, :body
+    context "when dealing with content-length header" do
+      it "should not suppress it when receiving :suppress_content_length => false" do
+        @tcp_socket.should_receive(:puts).with("content-length:7")
+        @connection.send "/queue", "message", :suppress_content_length => false
       end
       
+      it "should not suppress it when :suppress_content_length is nil" do
+        @tcp_socket.should_receive(:puts).with("content-length:7")
+        @connection.send "/queue", "message"
+      end
+    
+      it "should suppress it when receiving :suppress_content_length => true" do
+        @tcp_socket.should_not_receive(:puts).with("content-length:7")
+        @connection.send "/queue", "message", :suppress_content_length => true
+      end
+    end
+    
+    describe "when unacknowledging a message" do
+      
       before :each do
-        @message = FakeMessage.new
+        @message = Stomp::Message.new
         @message.body = "message body"
         @message.headers = {"destination" => "/queue/original", "message-id" => "ID"}
         
@@ -135,14 +143,26 @@ describe Stomp::Connection do
         @message.headers[:retry_count].should == 5
       end
       
-      it "should send the message to the dead letter queue as persistent if max redeliveries have been reached" do
-        @message.headers["retry_count"] = @parameters[:max_redeliveries] + 1
+      it "should not send the message to the dead letter queue as persistent if redeliveries equal max redeliveries" do
+        max_redeliveries = 5
+        dead_letter_queue = "/queue/Dead"
+        
+        @message.headers["retry_count"] = max_redeliveries
         transaction_id = "transaction-#{@message.headers["message-id"]}-#{@message.headers["retry_count"]}"
-        @retry_headers[:persistent] = true
-        @retry_headers[:transaction] = transaction_id
-        @retry_headers[:retry_count] = @message.headers["retry_count"] + 1
-        @connection.should_receive(:send).with(@parameters[:dead_letter_queue], @message.body, @retry_headers)
-        @connection.unreceive @message
+        @retry_headers = @retry_headers.merge :transaction => transaction_id, :retry_count => @message.headers["retry_count"] + 1
+        @connection.should_receive(:send).with(@message.headers["destination"], @message.body, @retry_headers)
+        @connection.unreceive @message, :dead_letter_queue => dead_letter_queue, :max_redeliveries => max_redeliveries
+      end
+      
+      it "should send the message to the dead letter queue as persistent if max redeliveries have been reached" do
+        max_redeliveries = 5
+        dead_letter_queue = "/queue/Dead"
+        
+        @message.headers["retry_count"] = max_redeliveries + 1
+        transaction_id = "transaction-#{@message.headers["message-id"]}-#{@message.headers["retry_count"]}"
+        @retry_headers = @retry_headers.merge :persistent => true, :transaction => transaction_id, :retry_count => @message.headers["retry_count"] + 1
+        @connection.should_receive(:send).with(dead_letter_queue, @message.body, @retry_headers)
+        @connection.unreceive @message, :dead_letter_queue => dead_letter_queue, :max_redeliveries => max_redeliveries
       end
       
       it "should rollback the transaction and raise the exception if happened during transaction" do
@@ -171,9 +191,9 @@ describe Stomp::Connection do
       
       before(:each) do
         ssl_parameters = {:hosts => [{:login => "login2", :passcode => "passcode2", :host => "remotehost", :ssl => true}]}
-        @ssl_socket = mock(:ssl_socket)
+        @ssl_socket = mock(:ssl_socket, :puts => nil, :write => nil)
         
-        TCPSocket.should_receive(:new).and_return mock(:tcp_socket)
+        TCPSocket.should_receive(:new).and_return @tcp_socket
         OpenSSL::SSL::SSLSocket.should_receive(:new).and_return(@ssl_socket)
         @ssl_socket.should_receive(:connect)
         
@@ -215,7 +235,7 @@ describe Stomp::Connection do
         #retries the same host
         TCPSocket.should_receive(:open).and_raise "exception"
         #tries the new host
-        TCPSocket.should_receive(:open).and_return mock(:tcp_socket)
+        TCPSocket.should_receive(:open).and_return @tcp_socket
 
         @connection.socket
         @connection.instance_variable_get(:@host).should == "remotehost"
@@ -236,9 +256,7 @@ describe Stomp::Connection do
           :randomize => false,
           :backup => false,
           :timeout => -1,
-          :connect_headers => {},
-          :dead_letter_queue => "queue/DLQ",
-          :max_redeliveries => 6
+          :connect_headers => {}
         }
         
         used_hash =  {
