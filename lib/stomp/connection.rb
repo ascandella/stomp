@@ -99,7 +99,7 @@ module Stomp
           begin
             s = open_socket
             @closed = false
-      
+            # Open complete
             headers = @connect_headers.clone
             headers[:login] = @login
             headers[:passcode] = @passcode
@@ -133,13 +133,7 @@ module Stomp
     end
     
     def connected?
-      begin
-        test_socket = TCPSocket.open @host, @port
-        test_socket.close
-        open?
-      rescue
-        false
-      end
+      open?
     end
     
     def close_socket
