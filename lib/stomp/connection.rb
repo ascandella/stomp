@@ -132,8 +132,13 @@ module Stomp
       #end
     end
     
+    # We need to check if the port is still open on the server, after an error ocurring
     def connected?
+      # Don't need to check the connection if a failure didn't happen
+      return open? unless @failure
+      
       begin
+        @failure = nil
         test_socket = TCPSocket.open @host, @port
         test_socket.close
         open?
@@ -154,8 +159,8 @@ module Stomp
     
     def open_socket
       return TCPSocket.open @host, @port unless @ssl
-        
-        ssl_socket
+      
+      ssl_socket
     end
   
     def ssl_socket
