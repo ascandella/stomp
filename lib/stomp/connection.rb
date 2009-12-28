@@ -92,7 +92,7 @@ module Stomp
       
         s = @socket;
         
-        s = nil unless connected?
+        s = nil if closed?
         
         while s.nil? || !@failure.nil?
           @failure = nil
@@ -110,10 +110,10 @@ module Stomp
             
             @connection_attempts = 0
           rescue
-            @failure = $!;
-            s=nil;
+            @failure = $!
+            s = nil
             raise unless @reliable
-            $stderr.print "connect to #{@host} failed: " + $! +" will retry(##{@connection_attempts}) in #{@reconnect_delay}\n";
+            $stderr.print "connect to #{@host} failed: #{$!} will retry(##{@connection_attempts}) in #{@reconnect_delay}\n";
 
             raise "Max number of reconnection attempts reached" if max_reconnect_attempts?
 
@@ -130,21 +130,6 @@ module Stomp
         @socket = s
         return s;
       #end
-    end
-    
-    # We need to check if the port is still open on the server, after an error ocurring
-    def connected?
-      # Don't need to check the connection if a failure didn't happen
-      return open? unless @failure
-      
-      begin
-        @failure = nil
-        test_socket = TCPSocket.open @host, @port
-        test_socket.close
-        open?
-      rescue
-        false
-      end
     end
     
     def close_socket
@@ -370,9 +355,9 @@ module Stomp
           s = socket
           return _receive(s)
         rescue
-          @failure = $!;
+          @failure = $!
           raise unless @reliable
-          $stderr.print "receive failed: " + $!;
+          $stderr.print "receive failed: #{$!}"
         end
       end
     end
@@ -461,9 +446,9 @@ module Stomp
             _transmit(s, command, headers, body)
             return
           rescue
-            @failure = $!;
+            @failure = $!
             raise unless @reliable
-            $stderr.print "transmit to #{@host} failed: " + $!+"\n";
+            $stderr.print "transmit to #{@host} failed: #{$!}\n";
           end
         end
       end
