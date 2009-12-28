@@ -92,7 +92,7 @@ module Stomp
       
         s = @socket;
         
-        s = nil unless connected?
+        s = nil if closed?
         
         while s.nil? || !@failure.nil?
           @failure = nil
@@ -130,10 +130,6 @@ module Stomp
         @socket = s
         return s;
       #end
-    end
-    
-    def connected?
-      open?
     end
     
     def close_socket
