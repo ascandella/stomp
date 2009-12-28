@@ -230,8 +230,7 @@ describe Stomp::Connection do
       end
       
       it "should change to next host on socket error" do
-        connection = Stomp::Connection.new(@parameters)
-        connection.instance_variable_set(:@failure, "some exception")
+        @connection.instance_variable_set(:@failure, "some exception")
         #retries the same host
         TCPSocket.should_receive(:open).and_raise "exception"
         #tries the new host
@@ -301,16 +300,6 @@ describe Stomp::Connection do
       
     end
     
-  end
-  
-  describe "when checking if connected" do
-    it "should return true if no exceptions are raised" do
-      @connection.connected?.should be_true
-    end
-    it "should return false if any exceptions are raised" do
-      TCPSocket.should_receive(:open).and_raise "exception"
-      @connection.connected?.should be_false
-    end
   end
   
   describe "when closing a socket" do
