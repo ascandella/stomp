@@ -110,10 +110,10 @@ module Stomp
             
             @connection_attempts = 0
           rescue
-            @failure = $!;
-            s=nil;
+            @failure = $!
+            s = nil
             raise unless @reliable
-            $stderr.print "connect to #{@host} failed: " + $! +" will retry(##{@connection_attempts}) in #{@reconnect_delay}\n";
+            $stderr.print "connect to #{@host} failed: #{$!} will retry(##{@connection_attempts}) in #{@reconnect_delay}\n";
 
             raise "Max number of reconnection attempts reached" if max_reconnect_attempts?
 
@@ -355,9 +355,9 @@ module Stomp
           s = socket
           return _receive(s)
         rescue
-          @failure = $!;
+          @failure = $!
           raise unless @reliable
-          $stderr.print "receive failed: " + $!;
+          $stderr.print "receive failed: #{$!}"
         end
       end
     end
@@ -446,9 +446,9 @@ module Stomp
             _transmit(s, command, headers, body)
             return
           rescue
-            @failure = $!;
+            @failure = $!
             raise unless @reliable
-            $stderr.print "transmit to #{@host} failed: " + $!+"\n";
+            $stderr.print "transmit to #{@host} failed: #{$!}\n";
           end
         end
       end
