@@ -144,8 +144,8 @@ module Stomp
     
     def open_socket
       return TCPSocket.open @host, @port unless @ssl
-        
-        ssl_socket
+      
+      ssl_socket
     end
   
     def ssl_socket
