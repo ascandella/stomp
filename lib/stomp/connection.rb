@@ -90,7 +90,7 @@ module Stomp
       # Need to look into why the following synchronize does not work.
       #@read_semaphore.synchronize do
       
-        s = @socket;
+        s = @socket
         
         s = nil if closed?
         
@@ -99,7 +99,7 @@ module Stomp
           begin
             s = open_socket
             @closed = false
-      
+            # Open complete
             headers = @connect_headers.clone
             headers[:login] = @login
             headers[:passcode] = @passcode
@@ -113,11 +113,11 @@ module Stomp
             @failure = $!
             s = nil
             raise unless @reliable
-            $stderr.print "connect to #{@host} failed: #{$!} will retry(##{@connection_attempts}) in #{@reconnect_delay}\n";
+            $stderr.print "connect to #{@host} failed: #{$!} will retry(##{@connection_attempts}) in #{@reconnect_delay}\n"
 
             raise "Max number of reconnection attempts reached" if max_reconnect_attempts?
 
-            sleep(@reconnect_delay);
+            sleep(@reconnect_delay)
             
             @connection_attempts += 1
             
@@ -128,7 +128,7 @@ module Stomp
           end
         end
         @socket = s
-        return s;
+        return s
       #end
     end
     
@@ -448,7 +448,7 @@ module Stomp
           rescue
             @failure = $!
             raise unless @reliable
-            $stderr.print "transmit to #{@host} failed: #{$!}\n";
+            $stderr.print "transmit to #{@host} failed: #{$!}\n"
           end
         end
       end

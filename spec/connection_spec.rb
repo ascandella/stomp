@@ -312,7 +312,7 @@ describe Stomp::Connection do
       @connection.close_socket.should be_true
     end
   end
-  
+
   describe "when checking if max reconnect attempts have been reached" do
     it "should return false if not using failover" do
       host = @parameters[:hosts][0]
