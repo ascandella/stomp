@@ -173,7 +173,7 @@ module Stomp
     end
   
     def refine_params(params)
-      params = params.uncamelize_and_symbolize
+      params = params.uncamelize_and_symbolize_keys
       
       default_params = {
         :connect_headers => {},
@@ -300,7 +300,7 @@ module Stomp
     def unreceive(message, options = {})
       options = { :dead_letter_queue => "/queue/DLQ", :max_redeliveries => 6 }.merge options
       # Lets make sure all keys are symbols
-      message.headers = message.headers.symbolize
+      message.headers = message.headers.symbolize_keys
       
       retry_count = message.headers[:retry_count].to_i || 0
       message.headers[:retry_count] = retry_count + 1
@@ -373,11 +373,11 @@ module Stomp
     end
     
     class ::Hash
-      def uncamelize_and_symbolize
-        self.uncamelize_and_stringfy.symbolize
+      def uncamelize_and_symbolize_keys
+        self.uncamelize_and_stringify_keys.symbolize_keys
       end
 
-      def uncamelize_and_stringfy
+      def uncamelize_and_stringify_keys
         uncamelized = {}
         self.each_pair do |key, value|
           new_key = key.to_s.split(/(?=[A-Z])/).join('_').downcase
@@ -387,14 +387,14 @@ module Stomp
         uncamelized
       end
 
-      def symbolize
+      def symbolize_keys
         symbolized = {}
         self.each_pair do |key, value|
           symbolized[key.to_sym] = value
         end
 
         symbolized
-      end
+      end unless self.respond_to? :symbolize_keys
     end
 
     private
