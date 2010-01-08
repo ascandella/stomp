@@ -1,7 +1,7 @@
 GEM       = "stomp"
 VER       = "1.1.4"
-AUTHORS   = ["Brian McCallister", 'Marius Mathiesen']
-EMAILS    = ["brianm@apache.org", 'marius@stones.com']
+AUTHORS   = ["Brian McCallister", 'Marius Mathiesen', 'Thiago Morello']
+EMAILS    = ["brianm@apache.org", 'marius@stones.com', 'morellon@gmail.com']
 HOMEPAGE  = "http://stomp.codehaus.org/"
 SUMMARY   = "Ruby client for the Stomp messaging protocol"
 
@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
   # get this easily and accurately by running 'Dir.glob("{lib,test}/**/*")'
   # in an IRB session.  However, GitHub won't allow that command hence
   # we spell it out.
-  s.files = ["README.rdoc", "LICENSE", "CHANGELOG", "Rakefile", "lib/stomp.rb", "lib/stomp/client.rb", "lib/stomp/connection.rb", "lib/stomp/message.rb", "test/test_client.rb", "test/test_connection.rb", "test/test_helper.rb"]
+  s.files = ["README.rdoc", "LICENSE", "CHANGELOG", "Rakefile", "lib/stomp.rb", "lib/stomp/client.rb", "lib/stomp/connection.rb", "lib/stomp/message.rb", "lib/stomp/errors.rb", "test/test_client.rb", "test/test_connection.rb", "test/test_helper.rb"]
   s.test_files = ["test/test_client.rb", "test/test_connection.rb", "test/test_helper.rb"]
 
   s.has_rdoc = true

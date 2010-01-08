@@ -5,17 +5,14 @@ module Stomp
     attr_accessor :command, :headers, :body
 
     def initialize(message)
-=begin
-      yield(self) if block_given?
-=end
       # Set default empty values
       self.command = ''
       self.headers = {}
       self.body = ''
       return self if is_blank?(message)
 
-      # Parse the format of the stomp message
-      parse = message.match /^(CONNECTED|SEND|SUBSCRIBE|UNSUBSCRIBE|BEGIN|COMMIT|ABORT|ACK|DISCONNECT|MESSAGE|RECEIPT|ERROR)\n(.*)\n\n(.*)\0\n?$/m
+      # Parse the format of the received stomp message
+      parse = message.match /^(CONNECTED|MESSAGE|RECEIPT|ERROR)\n(.*)\n\n(.*)\0\n?$/m
       raise Stomp::Error::InvalidFormat if parse.nil?
 
       # Set the message values

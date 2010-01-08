@@ -398,16 +398,16 @@ module Stomp
     end
 
     private
-      def message_available?(socket)
-        r,w,e = IO.select([socket],nil,nil,0)
+      def message_available?(read_socket)
+        r,w,e = IO.select([read_socket],nil,nil,0)
         ! r.nil?
       end
 
-      def _receive( socket )
+      def _receive( read_socket )
         line = ' '
         @read_semaphore.synchronize do
-          message_content = socket.gets
-          message_content += socket.gets while message_available? socket
+          message_content = read_socket.gets
+          message_content += read_socket.gets while message_available? read_socket
           Message.new(message_content)
         end
       end
