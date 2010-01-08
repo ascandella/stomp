@@ -398,43 +398,17 @@ module Stomp
     end
 
     private
+      def message_available?(socket)
+        r,w,e = IO.select([socket],nil,nil,0)
+        ! r.nil?
+      end
 
-      def _receive( s )
+      def _receive( socket )
         line = ' '
         @read_semaphore.synchronize do
-          line = s.gets while line =~ /^\s*$/
-          return nil if line.nil?
-
-          message = Message.new do |m|
-            m.command = line.chomp
-            m.headers = {}
-            until (line = s.gets.chomp) == ''
-              k = (line.strip[0, line.strip.index(':')]).strip
-              v = (line.strip[line.strip.index(':') + 1, line.strip.length]).strip
-              m.headers[k] = v
-            end
-
-            if (m.headers['content-length'])
-              m.body = s.read m.headers['content-length'].to_i
-              c = RUBY_VERSION > '1.9' ? s.getc.ord : s.getc
-              raise "Invalid content length received" unless c == 0
-            else
-              m.body = ''
-              if RUBY_VERSION > '1.9'
-                until (c = s.getc.ord) == 0
-                  m.body << c.chr
-                end
-              else
-                until (c = s.getc) == 0
-                  m.body << c.chr
-                end
-              end
-            end
-            #c = s.getc
-            #raise "Invalid frame termination received" unless c == 10
-          end # message
-          return message
-
+          message_content = socket.gets
+          message_content += socket.gets while message_available? socket
+          Message.new(message_content)
         end
       end
 

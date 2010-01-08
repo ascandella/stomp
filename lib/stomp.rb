@@ -19,6 +19,7 @@ require 'thread'
 require 'stomp/connection'
 require 'stomp/client'
 require 'stomp/message'
+require 'stomp/errors'
 
 module Stomp
 end

@@ -92,7 +92,7 @@ describe Stomp::Connection do
     describe "when unacknowledging a message" do
       
       before :each do
-        @message = Stomp::Message.new
+        @message = Stomp::Message.new(nil)
         @message.body = "message body"
         @message.headers = {"destination" => "/queue/original", "message-id" => "ID"}
         
