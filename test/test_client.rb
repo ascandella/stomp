@@ -4,7 +4,7 @@ class TestClient < Test::Unit::TestCase
   include TestBase
   
   def setup
-    @client = Stomp::Client.new("test", "user", host(), port())
+    @client = Stomp::Client.new(user(), passcode(), host(), port())
   end
 
   def teardown
