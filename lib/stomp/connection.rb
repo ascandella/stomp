@@ -143,33 +143,7 @@ module Stomp
     end
     
     def open_socket
-      return TCPSocket.open @host, @port unless @ssl
-      
-      ssl_socket
-    end
-  
-    def ssl_socket
-      require 'openssl' unless defined?(OpenSSL)
-      
-      ctx = OpenSSL::SSL::SSLContext.new
-        
-        # For client certificate authentication:
-        # key_path = ENV["STOMP_KEY_PATH"] || "~/stomp_keys"
-        # ctx.cert = OpenSSL::X509::Certificate.new("#{key_path}/client.cer")
-        # ctx.key = OpenSSL::PKey::RSA.new("#{key_path}/client.keystore")
-        
-        # For server certificate authentication:
-        # truststores = OpenSSL::X509::Store.new
-        # truststores.add_file("#{key_path}/client.ts")
-        # ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER
-        # ctx.cert_store = truststores
-        
-        ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE  
-        
-      tcp_socket = TCPSocket.new @host, @port
-      ssl = OpenSSL::SSL::SSLSocket.new(tcp_socket, ctx)
-      ssl.connect
-      ssl
+      @ssl ? open_ssl_socket : open_tcp_socket
     end
   
     def refine_params(params)
@@ -371,43 +345,14 @@ module Stomp
       end
       return super_result
     end
-    
-    class ::Hash
-      def uncamelize_and_symbolize_keys
-        self.uncamelize_and_stringify_keys.symbolize_keys
-      end
-
-      def uncamelize_and_stringify_keys
-        uncamelized = {}
-        self.each_pair do |key, value|
-          new_key = key.to_s.split(/(?=[A-Z])/).join('_').downcase
-          uncamelized[new_key] = value
-        end
-
-        uncamelized
-      end
-
-      def symbolize_keys
-        symbolized = {}
-        self.each_pair do |key, value|
-          symbolized[key.to_sym] = value
-        end
-
-        symbolized
-      end unless self.respond_to? :symbolize_keys
-    end
 
     private
-      def message_available?(read_socket)
-        r,w,e = IO.select([read_socket],nil,nil,0)
-        ! r.nil?
-      end
 
       def _receive( read_socket )
         line = ' '
         @read_semaphore.synchronize do
-          message_content = read_socket.gets
-          message_content += read_socket.gets while message_available? read_socket
+          message_content = ''
+          message_content += read_socket.gets while read_socket.ready?
           Message.new(message_content)
         end
       end
@@ -444,6 +389,41 @@ module Stomp
           s.write body
           s.write "\0"
         end
+      end
+      
+      def open_tcp_socket
+        tcp_socket = TCPSocket.open @host, @port
+        def tcp_socket.ready?
+          r,w,e = IO.select([self],nil,nil,0)
+          ! r.nil?
+        end
+
+        tcp_socket
+      end
+
+      def open_ssl_socket
+        require 'openssl' unless defined?(OpenSSL)
+        ctx = OpenSSL::SSL::SSLContext.new
+
+        # For client certificate authentication:
+        # key_path = ENV["STOMP_KEY_PATH"] || "~/stomp_keys"
+        # ctx.cert = OpenSSL::X509::Certificate.new("#{key_path}/client.cer")
+        # ctx.key = OpenSSL::PKey::RSA.new("#{key_path}/client.keystore")
+
+        # For server certificate authentication:
+        # truststores = OpenSSL::X509::Store.new
+        # truststores.add_file("#{key_path}/client.ts")
+        # ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        # ctx.cert_store = truststores
+
+        ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE  
+
+        ssl = OpenSSL::SSL::SSLSocket.new(open_tcp_socket, ctx)
+        def ssl.ready?
+          ! @rbuffer.empty? || @io.ready?
+        end
+        ssl.connect
+        ssl
       end
 
   end

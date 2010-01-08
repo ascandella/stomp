@@ -16,6 +16,7 @@
 require 'io/wait'
 require 'socket'
 require 'thread'
+require 'stomp/ext/hash'
 require 'stomp/connection'
 require 'stomp/client'
 require 'stomp/message'
