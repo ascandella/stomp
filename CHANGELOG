@@ -2,6 +2,10 @@
 
 * Added unreceive message method that sends the message back to its queue or to the 
   dead letter queue, depending on the :max_redeliveries option, similar to a13m one.
+* Added environment variable option for running 'rake test' on any stomp server, using any port with any user.
+* Added suppress_content_length header option for ActiveMQ knowing it is a text message (see: 
+  http://juretta.com/log/2009/05/24/activemq-jms-stomp/)
+* Fixed some bugs with Ruby 1.9 (concatenate string + exception)
 
 == 1.1.3 2009-24-11
 
