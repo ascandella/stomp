@@ -1,7 +1,8 @@
 require File.join(File.dirname(__FILE__), 'test_helper.rb')
 
-class TestStomp < TestBase
-
+class TestStomp < Test::Unit::TestCase
+  include TestBase
+  
   def setup
     @conn = Stomp::Connection.open("test", "user", host(), port())
   end

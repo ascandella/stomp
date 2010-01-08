@@ -1,7 +1,8 @@
 require File.join(File.dirname(__FILE__), 'test_helper.rb')
 
-class TestClient < TestBase
-
+class TestClient < Test::Unit::TestCase
+  include TestBase
+  
   def setup
     @client = Stomp::Client.new("test", "user", host(), port())
   end
