@@ -4,7 +4,7 @@ class TestClient < Test::Unit::TestCase
   include TestBase
   
   def setup
-    @client = Stomp::Client.new(user(), passcode(), host(), port())
+    @client = Stomp::Client.new(user, passcode, host, port)
   end
 
   def teardown
@@ -145,7 +145,7 @@ class TestClient < Test::Unit::TestCase
 
   def test_unsubscribe
     message = nil
-    client = Stomp::Client.new("test", "user", "localhost", 61613, true)
+    client = Stomp::Client.new(user, passcode, host, port, true)
     client.subscribe(destination, :ack => 'client') { |m| message = m }
     @client.send destination, message_text
     Timeout::timeout(4) do
