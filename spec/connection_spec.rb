@@ -193,7 +193,7 @@ describe Stomp::Connection do
         ssl_parameters = {:hosts => [{:login => "login2", :passcode => "passcode2", :host => "remotehost", :ssl => true}]}
         @ssl_socket = mock(:ssl_socket, :puts => nil, :write => nil)
         
-        TCPSocket.should_receive(:new).and_return @tcp_socket
+        TCPSocket.should_receive(:open).and_return @tcp_socket
         OpenSSL::SSL::SSLSocket.should_receive(:new).and_return(@ssl_socket)
         @ssl_socket.should_receive(:connect)
         
