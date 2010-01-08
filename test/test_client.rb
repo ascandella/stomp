@@ -1,9 +1,10 @@
 require File.join(File.dirname(__FILE__), 'test_helper.rb')
 
 class TestClient < Test::Unit::TestCase
-
+  include TestBase
+  
   def setup
-    @client = Stomp::Client.new("test", "user", "localhost", 61613)
+    @client = Stomp::Client.new(user(), passcode(), host(), port())
   end
 
   def teardown
@@ -59,7 +60,7 @@ class TestClient < Test::Unit::TestCase
 
     # was never acked so should be resent to next client
 
-    @client = Stomp::Client.new("test", "user", "localhost", 61613)
+    @client = Stomp::Client.new("test", "user", host(), port())
     received = nil
     @client.subscribe(destination) {|msg| received = msg}
     sleep 0.01 until received
