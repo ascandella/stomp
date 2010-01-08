@@ -2,13 +2,14 @@ module Stomp
 
   # Container class for frames, misnamed technically
   class Message
-    attr_accessor :command, :headers, :body
+    attr_accessor :command, :headers, :body, :original
 
     def initialize(message)
       # Set default empty values
       self.command = ''
       self.headers = {}
       self.body = ''
+      self.original = message
       return self if is_blank?(message)
 
       # Parse the format of the received stomp message

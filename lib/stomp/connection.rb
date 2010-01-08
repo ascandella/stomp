@@ -3,7 +3,6 @@ module Stomp
   # Low level connection which maps commands and supports
   # synchronous receives
   class Connection
-
     alias :obj_send :send
     # A new Connection object accepts the following parameters:
     #
@@ -45,6 +44,8 @@ module Stomp
     #   stomp://user:pass@host.domain.tld:port
     #
     def initialize(login = '', passcode = '', host = 'localhost', port = 61613, reliable = false, reconnect_delay = 5, connect_headers = {})
+      @received_messages = []
+
       if login.is_a?(Hash)
         hashed_initialize(login)
       else
@@ -349,12 +350,47 @@ module Stomp
     private
 
       def _receive( read_socket )
-        line = ' '
         @read_semaphore.synchronize do
-          message_content = ''
-          message_content += read_socket.gets while read_socket.ready?
-          Message.new(message_content)
+          line = read_socket.gets
+          return nil if line.nil?
+
+          # If the reading hangs for more than 5 seconds, abort the parsing process
+          Timeout::timeout(5, Stomp::Error::PacketParsingTimeout) do
+            # Reads the beginning of the message until it runs into a empty line
+            message_header = ''
+            begin
+              message_header += line
+              line = read_socket.gets
+            end until line =~ /^\s?\n$/
+
+            # Checks if it includes content_length header
+            content_length = message_header.match /content-length\s?:\s?(\d+)\s?\n/
+            message_body = ''
+
+            # If it does, reads the specified amount of bytes
+            if content_length
+              message_body = read_socket.read content_length[1].to_i
+              raise Stomp::Error::InvalidMessageLength unless parse_char(read_socket.getc) == "\0"
+            # Else reads, the rest of the message until the first \0
+            else
+              message_body += char while read_socket.ready? && (char = parse_char(read_socket.getc)) != "\0"
+            end
+
+            # If the buffer isn't empty, reads the next char and returns it to the buffer
+            # unless it's a \n
+            if read_socket.ready?
+              last_char = read_socket.getc
+              read_socket.ungetc(last_char) if parse_char(last_char) != "\n"
+            end
+
+            # Adds the excluded \n and \0 and tries to create a new message with it
+            Message.new(message_header + "\n" + message_body + "\0")
+          end
         end
+      end
+
+      def parse_char(char)
+        RUBY_VERSION > '1.9' ? char : char.chr
       end
 
       def transmit(command, headers = {}, body = '')

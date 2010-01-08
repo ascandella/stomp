@@ -8,7 +8,13 @@ module Stomp
 
     class InvalidMessageLength < RuntimeError
       def message
-        Invalid content length received
+        "Invalid content length received"
+      end
+    end
+
+    class PacketParsingTimeout < RuntimeError
+      def message
+        "Packet parsing timeout"
       end
     end
   end

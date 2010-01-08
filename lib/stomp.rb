@@ -16,11 +16,12 @@
 require 'io/wait'
 require 'socket'
 require 'thread'
-require 'stomp/ext/hash'
-require 'stomp/connection'
-require 'stomp/client'
-require 'stomp/message'
-require 'stomp/errors'
+
+require File.join(File.dirname(__FILE__), 'stomp', 'ext', 'hash')
+require File.join(File.dirname(__FILE__), 'stomp', 'connection')
+require File.join(File.dirname(__FILE__), 'stomp', 'client')
+require File.join(File.dirname(__FILE__), 'stomp', 'message')
+require File.join(File.dirname(__FILE__), 'stomp', 'errors')
 
 module Stomp
 end

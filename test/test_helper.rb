@@ -1,6 +1,10 @@
 require 'test/unit'
 require 'timeout'
 require 'stomp'
+
+require 'rubygems'
+require 'ruby-debug'
+
 $:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 # Helper routines
 module TestBase

@@ -11,14 +11,6 @@ class TestClient < Test::Unit::TestCase
     @client.close
   end
 
-  def message_text
-    "test_client#" + name()
-  end
-
-  def destination
-    "/queue/test/ruby/client/" + name()
-  end
-
   def test_subscribe_requires_block
     assert_raise(RuntimeError) do
       @client.subscribe destination
@@ -179,5 +171,12 @@ class TestClient < Test::Unit::TestCase
     @client.commit 'tx2'
   end
 
+  private
+    def message_text
+      "test_client#" + name()
+    end
 
+    def destination
+      "/queue/test/ruby/client/" + name()
+    end
 end

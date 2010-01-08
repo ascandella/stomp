@@ -4,36 +4,11 @@ class TestStomp < Test::Unit::TestCase
   include TestBase
   
   def setup
-    @conn = Stomp::Connection.open(user(), passcode(), host(), port())
+    @conn = Stomp::Connection.open(user, passcode, host, port)
   end
 
   def teardown
     @conn.disconnect
-  end
-
-  def make_destination
-    "/queue/test/ruby/stomp/" + name()
-  end
-
-  def _test_transaction
-    @conn.subscribe make_destination
-
-    # Drain the destination.
-    sleep 0.01 while
-    sleep 0.01 while @conn.poll!=nil
-
-    @conn.begin "tx1"
-    @conn.send make_destination, "txn message", 'transaction' => "tx1"
-
-    @conn.send make_destination, "first message"
-
-    sleep 0.01
-    msg = @conn.receive
-    assert_equal "first message", msg.body
-
-    @conn.commit "tx1"
-    msg = @conn.receive
-    assert_equal "txn message", msg.body
   end
 
   def test_connection_exists
@@ -93,4 +68,40 @@ class TestStomp < Test::Unit::TestCase
     assert_match /^<Stomp::Message headers=/ , msg.to_s
   end
 
+  def test_send_two_messages
+    @conn.subscribe make_destination
+    @conn.send make_destination, "a\0"
+    @conn.send make_destination, "b\0"
+    msg_a = @conn.receive
+    msg_b = @conn.receive
+
+    assert_equal "a\0", msg_a.body
+    assert_equal "b\0", msg_b.body
+  end
+
+  private
+    def make_destination
+      "/queue/test/ruby/stomp/" + name()
+    end
+
+    def _test_transaction
+      @conn.subscribe make_destination
+
+      # Drain the destination.
+      sleep 0.01 while
+      sleep 0.01 while @conn.poll!=nil
+
+      @conn.begin "tx1"
+      @conn.send make_destination, "txn message", 'transaction' => "tx1"
+
+      @conn.send make_destination, "first message"
+
+      sleep 0.01
+      msg = @conn.receive
+      assert_equal "first message", msg.body
+
+      @conn.commit "tx1"
+      msg = @conn.receive
+      assert_equal "txn message", msg.body
+    end
 end
