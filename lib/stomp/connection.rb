@@ -91,28 +91,22 @@ module Stomp
       # Need to look into why the following synchronize does not work.
       #@read_semaphore.synchronize do
       
-        s = @socket
+        used_socket = @socket
         
-        s = nil if closed?
+        used_socket = nil if closed?
         
-        while s.nil? || !@failure.nil?
+        while used_socket.nil? || !@failure.nil?
           @failure = nil
           begin
-            s = open_socket
-            @closed = false
+            used_socket = open_socket
             # Open complete
-            headers = @connect_headers.clone
-            headers[:login] = @login
-            headers[:passcode] = @passcode
-            _transmit(s, "CONNECT", headers)
-            @connect = _receive(s)
-            # replay any subscriptions.
-            @subscriptions.each { |k,v| _transmit(s, "SUBSCRIBE", v) }
+            
+            connect(used_socket)
             
             @connection_attempts = 0
           rescue
             @failure = $!
-            s = nil
+            used_socket = nil
             raise unless @reliable
             $stderr.print "connect to #{@host} failed: #{$!} will retry(##{@connection_attempts}) in #{@reconnect_delay}\n"
 
@@ -128,23 +122,8 @@ module Stomp
             end
           end
         end
-        @socket = s
-        return s
+        @socket = used_socket
       #end
-    end
-    
-    def close_socket
-      begin
-        @socket.close
-      rescue
-        #Ignoring if already closed
-      end
-      
-      @closed = true
-    end
-    
-    def open_socket
-      @ssl ? open_ssl_socket : open_tcp_socket
     end
   
     def refine_params(params)
@@ -327,8 +306,8 @@ module Stomp
       # The recive my fail so we may need to retry.
       while TRUE
         begin
-          s = socket
-          return _receive(s)
+          used_socket = socket
+          return _receive(used_socket)
         rescue
           @failure = $!
           raise unless @reliable
@@ -397,8 +376,8 @@ module Stomp
         # The transmit may fail so we may need to retry.
         while TRUE
           begin
-            s = socket
-            _transmit(s, command, headers, body)
+            used_socket = socket
+            _transmit(used_socket, command, headers, body)
             return
           rescue
             @failure = $!
@@ -408,7 +387,7 @@ module Stomp
         end
       end
 
-      def _transmit(s, command, headers = {}, body = '')
+      def _transmit(used_socket, command, headers = {}, body = '')
         @transmit_semaphore.synchronize do
           # ActiveMQ interprets every message as a BinaryMessage 
           # if content_length header is included. 
@@ -418,12 +397,12 @@ module Stomp
           suppress_content_length = headers.delete :suppress_content_length
           headers['content-length'] = "#{body.length}" unless suppress_content_length
           
-          s.puts command  
-          headers.each {|k,v| s.puts "#{k}:#{v}" }
-          s.puts "content-type: text/plain; charset=UTF-8"
-          s.puts
-          s.write body
-          s.write "\0"
+          used_socket.puts command  
+          headers.each {|k,v| used_socket.puts "#{k}:#{v}" }
+          used_socket.puts "content-type: text/plain; charset=UTF-8"
+          used_socket.puts
+          used_socket.write body
+          used_socket.write "\0"
         end
       end
       
@@ -460,6 +439,36 @@ module Stomp
         end
         ssl.connect
         ssl
+      end
+      
+      def close_socket
+        begin
+          @socket.close
+        rescue
+          #Ignoring if already closed
+        end
+
+        @closed = true
+      end
+
+      def open_socket
+        used_socket = @ssl ? open_ssl_socket : open_tcp_socket
+        # try to close the old connection if any
+        close_socket
+        
+        @closed = false
+        
+        used_socket
+      end
+      
+      def connect(used_socket)
+        headers = @connect_headers.clone
+        headers[:login] = @login
+        headers[:passcode] = @passcode
+        _transmit(used_socket, "CONNECT", headers)
+        @connect = _receive(used_socket)
+        # replay any subscriptions.
+        @subscriptions.each { |k,v| _transmit(used_socket, "SUBSCRIBE", v) }
       end
 
   end
