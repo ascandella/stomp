@@ -158,6 +158,10 @@ class TestClient < Test::Unit::TestCase
     @client.acknowledge message, :transaction => 'tx2'
     @client.commit 'tx2'
   end
+  
+  def test_connection_frame
+  	assert_not_nil @client.connection_frame
+  end
 
   def test_unsubscribe
     message = nil

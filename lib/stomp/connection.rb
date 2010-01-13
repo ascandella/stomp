@@ -7,6 +7,7 @@ module Stomp
   # Low level connection which maps commands and supports
   # synchronous receives
   class Connection
+    attr_reader :connection_frame
     alias :obj_send :send
 
     def self.default_port(ssl)
@@ -466,7 +467,7 @@ module Stomp
         headers[:login] = @login
         headers[:passcode] = @passcode
         _transmit(used_socket, "CONNECT", headers)
-        @connect = _receive(used_socket)
+        @connection_frame = _receive(used_socket)
         # replay any subscriptions.
         @subscriptions.each { |k,v| _transmit(used_socket, "SUBSCRIBE", v) }
       end

@@ -10,6 +10,7 @@
 * Fixed bug with old socket not being closed when using failover
 * Fixed broken poll method on Connection
 * Fixed broken close method on Client
+* Added connection_frame accessor
 
 == 1.1.3 2009-24-11
 

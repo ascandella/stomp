@@ -67,6 +67,10 @@ class TestStomp < Test::Unit::TestCase
     msg = @conn.receive
     assert_match /^<Stomp::Message headers=/ , msg.to_s
   end
+  
+  def test_connection_frame
+  	assert_not_nil @conn.connection_frame
+  end
 
   def test_send_two_messages
     @conn.subscribe make_destination

@@ -189,6 +189,10 @@ module Stomp
       end
       @connection.send(destination, message, headers)
     end
+    
+    def connection_frame
+      @connection.connection_frame
+    end
 
     # Is this client open?
     def open?
