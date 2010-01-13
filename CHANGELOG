@@ -1,4 +1,4 @@
-== 1.1.4 2009-18-12
+== 1.1.4 2010-13-01
 
 * Added unreceive message method that sends the message back to its queue or to the 
   dead letter queue, depending on the :max_redeliveries option, similar to a13m one.
@@ -6,6 +6,10 @@
 * Added suppress_content_length header option for ActiveMQ knowing it is a text message (see: 
   http://juretta.com/log/2009/05/24/activemq-jms-stomp/)
 * Fixed some bugs with Ruby 1.9 (concatenate string + exception)
+* Major changes on message parsing feature
+* Fixed bug with old socket not being closed when using failover
+* Fixed broken poll method on Connection
+* Fixed broken close method on Client
 
 == 1.1.3 2009-24-11
 
