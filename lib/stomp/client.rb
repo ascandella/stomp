@@ -1,3 +1,5 @@
+require 'thread'
+
 module Stomp
 
   # Typical Stomp client class. Uses a listener thread to receive frames
@@ -7,7 +9,7 @@ module Stomp
   # in that thread if you have much message volume.
   class Client
 
-    attr_reader :login, :passcode, :host, :port, :reliable, :running, :parameters
+    attr_reader :login, :passcode, :host, :port, :reliable, :parameters
     alias :obj_send :send
 
     # A new Client object can be initialized using two forms:
@@ -40,7 +42,7 @@ module Stomp
         @login = first_host[:login]
         @passcode = first_host[:passcode]
         @host = first_host[:host]
-        @port = first_host[:port] || default_port(first_host[:ssl])
+        @port = first_host[:port] || Connection::default_port(first_host[:ssl])
         
         @reliable = true
         
@@ -57,7 +59,7 @@ module Stomp
         @login = first_host[:login] = $4 || ""
         @passcode = first_host[:passcode] = $5 || ""
         @host = first_host[:host] = $6
-        @port = first_host[:port] = $7.to_i || default_port(first_host[:ssl])
+        @port = first_host[:port] = $7.to_i || Connection::default_port(first_host[:ssl])
         
         options = $16 || ""
         parts = options.split(/&|=/)
@@ -200,8 +202,13 @@ module Stomp
 
     # Close out resources in use by this client
     def close
+      @listener_thread.exit
       @connection.disconnect
-      @running = false
+    end
+
+    # Check if the thread was created and isn't dead
+    def running
+      @listener_thread && !!@listener_thread.status
     end
 
     private
@@ -214,12 +221,6 @@ module Stomp
         end
         @receipt_listeners[id] = listener
         id
-      end
-      
-      def default_port(ssl)
-        return 61612 if ssl
-        
-        61613
       end
       
       def parse_hosts(url)
@@ -263,15 +264,14 @@ module Stomp
       def start_listeners
         @listeners = {}
         @receipt_listeners = {}
-        @running = true
         @replay_messages_by_txn = {}
 
         @listener_thread = Thread.start do
-          while @running
-            message = @connection.receive
+          while true
+            message = @connection.poll
             case
             when message.nil?
-              break
+              sleep 0.1
             when message.command == 'MESSAGE'
               if listener = @listeners[message.headers['destination']]
                 listener.call(message)

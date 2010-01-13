@@ -1,9 +1,18 @@
+require 'socket'
+require 'monitor'
+require 'timeout'
+
 module Stomp
 
   # Low level connection which maps commands and supports
   # synchronous receives
   class Connection
     alias :obj_send :send
+
+    def self.default_port(ssl)
+      ssl ? 61612 : 61613
+    end
+    
     # A new Connection object accepts the following parameters:
     #
     #   login             (String,  default : '')
@@ -61,8 +70,7 @@ module Stomp
       end
       
       @transmit_semaphore = Mutex.new
-      @read_semaphore = Mutex.new
-      @socket_semaphore = Mutex.new
+      @read_semaphore = Monitor.new
       
       @subscriptions = {}
       @failure = nil
@@ -88,11 +96,8 @@ module Stomp
     end
 
     def socket
-      # Need to look into why the following synchronize does not work.
-      #@read_semaphore.synchronize do
-      
+      @read_semaphore.synchronize do
         used_socket = @socket
-        
         used_socket = nil if closed?
         
         while used_socket.nil? || !@failure.nil?
@@ -123,7 +128,7 @@ module Stomp
           end
         end
         @socket = used_socket
-      #end
+      end
     end
   
     def refine_params(params)
@@ -155,16 +160,10 @@ module Stomp
       
       @ssl = current_host[:ssl]
       @host = current_host[:host]
-      @port = current_host[:port] || default_port(@ssl)
+      @port = current_host[:port] || Connection::default_port(@ssl)
       @login = current_host[:login] || ""
       @passcode = current_host[:passcode] || ""
       
-    end
-    
-    def default_port(ssl)
-      return 61612 if ssl
-      
-      61613
     end
     
     def max_reconnect_attempts?
@@ -297,7 +296,7 @@ module Stomp
     def poll
       @read_semaphore.synchronize do
         return nil if @socket.nil? || !@socket.ready?
-        return receive
+        receive
       end
     end
 
@@ -317,11 +316,11 @@ module Stomp
     end
 
     def receive
-      super_result = __old_receive()
+      super_result = __old_receive
       if super_result.nil? && @reliable
         $stderr.print "connection.receive returning EOF as nil - resetting connection.\n"
         @socket = nil
-        super_result = __old_receive()
+        super_result = __old_receive
       end
       return super_result
     end
@@ -347,6 +346,7 @@ module Stomp
             message_body = ''
 
             # If it does, reads the specified amount of bytes
+            char = ''
             if content_length
               message_body = read_socket.read content_length[1].to_i
               raise Stomp::Error::InvalidMessageLength unless parse_char(read_socket.getc) == "\0"

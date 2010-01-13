@@ -11,10 +11,18 @@ class TestClient < Test::Unit::TestCase
     @client.close
   end
 
-  def test_subscribe_requires_block
-    assert_raise(RuntimeError) do
-      @client.subscribe destination
-    end
+  def test_ack_api_works
+    @client.send destination, message_text, {:suppress_content_length => true}
+
+    received = nil
+    @client.subscribe(destination, {:ack => 'client'}) {|msg| received = msg}
+    sleep 0.01 until received
+    assert_equal message_text, received.body
+
+    receipt = nil
+    @client.acknowledge(received) {|r| receipt = r}
+    sleep 0.01 until receipt
+    assert_not_nil receipt.headers['receipt-id']
   end
 
   def test_asynch_subscribe
@@ -24,20 +32,6 @@ class TestClient < Test::Unit::TestCase
     sleep 0.01 until received
 
     assert_equal message_text, received.body
-  end
-
-  def test_ack_api_works
-    @client.send destination, message_text
-
-    received = nil
-    @client.subscribe(destination, :ack => 'client') {|msg| received = msg}
-    sleep 0.01 until received
-    assert_equal message_text, received.body
-
-    receipt = nil
-    @client.acknowledge(received) {|r| receipt = r}
-    sleep 0.01 until receipt
-    assert_not_nil receipt.headers['receipt-id']
   end
 
   # BROKEN
@@ -52,7 +46,7 @@ class TestClient < Test::Unit::TestCase
 
     # was never acked so should be resent to next client
 
-    @client = Stomp::Client.new("test", "user", host(), port())
+    @client = Stomp::Client.new(user, passcode, host, port)
     received = nil
     @client.subscribe(destination) {|msg| received = msg}
     sleep 0.01 until received
@@ -78,6 +72,12 @@ class TestClient < Test::Unit::TestCase
     sleep 0.01 until message
 
     assert_equal message_text, message.body
+  end
+
+  def test_subscribe_requires_block
+    assert_raise(RuntimeError) do
+      @client.subscribe destination
+    end
   end
 
   def test_transactional_send
@@ -135,18 +135,6 @@ class TestClient < Test::Unit::TestCase
     @client.commit 'tx2'
   end
 
-  def test_unsubscribe
-    message = nil
-    client = Stomp::Client.new(user, passcode, host, port, true)
-    client.subscribe(destination, :ack => 'client') { |m| message = m }
-    @client.send destination, message_text
-    Timeout::timeout(4) do
-      sleep 0.01 until message
-    end
-    client.unsubscribe destination # was throwing exception on unsub at one point
-
-  end
-
   def test_transaction_with_client_side_redelivery
     @client.send destination, message_text
 
@@ -171,12 +159,24 @@ class TestClient < Test::Unit::TestCase
     @client.commit 'tx2'
   end
 
+  def test_unsubscribe
+    message = nil
+    client = Stomp::Client.new(user, passcode, host, port, true)
+    client.subscribe(destination, :ack => 'client') { |m| message = m }
+    @client.send destination, message_text
+    Timeout::timeout(4) do
+      sleep 0.01 until message
+    end
+    client.unsubscribe destination # was throwing exception on unsub at one point
+
+  end
+
   private
     def message_text
-      "test_client#" + name()
+      "test_client#" + name
     end
 
     def destination
-      "/queue/test/ruby/client/" + name()
+      "/queue/test/ruby/client/" + name
     end
 end

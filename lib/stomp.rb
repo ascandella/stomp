@@ -13,10 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-require 'io/wait'
-require 'socket'
-require 'thread'
-
 require File.join(File.dirname(__FILE__), 'stomp', 'ext', 'hash')
 require File.join(File.dirname(__FILE__), 'stomp', 'connection')
 require File.join(File.dirname(__FILE__), 'stomp', 'client')

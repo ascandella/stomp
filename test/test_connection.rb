@@ -81,7 +81,7 @@ class TestStomp < Test::Unit::TestCase
 
   private
     def make_destination
-      "/queue/test/ruby/stomp/" + name()
+      "/queue/test/ruby/stomp/" + name
     end
 
     def _test_transaction
