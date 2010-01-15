@@ -194,6 +194,10 @@ module Stomp
       @connection.connection_frame
     end
 
+    def disconnect_receipt
+      @connection.disconnect_receipt
+    end
+
     # Is this client open?
     def open?
       @connection.open?
@@ -205,9 +209,9 @@ module Stomp
     end
 
     # Close out resources in use by this client
-    def close
+    def close headers={}
       @listener_thread.exit
-      @connection.disconnect
+      @connection.disconnect headers
     end
 
     # Check if the thread was created and isn't dead

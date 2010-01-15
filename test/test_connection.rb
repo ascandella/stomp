@@ -8,7 +8,7 @@ class TestStomp < Test::Unit::TestCase
   end
 
   def teardown
-    @conn.disconnect
+    @conn.disconnect if @conn # allow tests to disconnect
   end
 
   def test_connection_exists
@@ -26,6 +26,16 @@ class TestStomp < Test::Unit::TestCase
     @conn.subscribe make_destination, :receipt => "abc"
     msg = @conn.receive
     assert_equal "abc", msg.headers['receipt-id']
+  end
+
+  def test_disconnect_receipt
+    @conn.disconnect :receipt => "abc123"
+    assert_nothing_raised {
+      assert_not_nil(@conn.disconnect_receipt, "should have a receipt")
+      assert_equal(@conn.disconnect_receipt.headers['receipt-id'],
+        "abc123", "receipt sent and received should match")
+    }
+    @conn = nil
   end
 
   def test_client_ack_with_symbol

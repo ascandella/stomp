@@ -8,7 +8,7 @@ class TestClient < Test::Unit::TestCase
   end
 
   def teardown
-    @client.close
+    @client.close if @client # allow tests to close
   end
 
   def test_ack_api_works
@@ -63,6 +63,16 @@ class TestClient < Test::Unit::TestCase
     @client.subscribe(destination) {|m| message = m}
     sleep 0.1 until message
     assert_equal message_text, message.body
+  end
+
+  def test_disconnect_receipt
+    @client.close :receipt => "xyz789"
+    assert_nothing_raised {
+      assert_not_nil(@client.disconnect_receipt, "should have a receipt")
+      assert_equal(@client.disconnect_receipt.headers['receipt-id'],
+        "xyz789", "receipt sent and received should match")
+    }
+    @client = nil
   end
 
   def test_send_then_sub

@@ -8,6 +8,7 @@ module Stomp
   # synchronous receives
   class Connection
     attr_reader :connection_frame
+    attr_reader :disconnect_receipt
     alias :obj_send :send
 
     def self.default_port(ssl)
@@ -288,7 +289,8 @@ module Stomp
     # Close this connection
     def disconnect(headers = {})
       transmit("DISCONNECT", headers)
-      
+      headers = headers.symbolize_keys
+      @disconnect_receipt = receive if headers[:receipt]
       close_socket
     end
 
@@ -468,6 +470,7 @@ module Stomp
         headers[:passcode] = @passcode
         _transmit(used_socket, "CONNECT", headers)
         @connection_frame = _receive(used_socket)
+        @disconnect_receipt = nil
         # replay any subscriptions.
         @subscriptions.each { |k,v| _transmit(used_socket, "SUBSCRIBE", v) }
       end
