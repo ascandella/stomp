@@ -13,7 +13,7 @@ module Stomp
       return self if is_blank?(message)
 
       # Parse the format of the received stomp message
-      parse = message.match /^(CONNECTED|MESSAGE|RECEIPT|ERROR)\n(.*)\n\n(.*)\0\n?$/m
+      parse = message.match /^(CONNECTED|MESSAGE|RECEIPT|ERROR)\n(.*?)\n\n(.*)\0\n?$/m
       raise Stomp::Error::InvalidFormat if parse.nil?
 
       # Set the message values
@@ -29,7 +29,7 @@ module Stomp
         body_length = self.headers['content-length'].to_i
         raise Stomp::Error::InvalidMessageLength if parse[3].length != body_length
       end
-      self.body = parse[3][0..body_length].chomp
+      self.body = parse[3][0..body_length]
     end
 
     def to_s

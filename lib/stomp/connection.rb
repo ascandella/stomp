@@ -116,7 +116,7 @@ module Stomp
             raise unless @reliable
             $stderr.print "connect to #{@host} failed: #{$!} will retry(##{@connection_attempts}) in #{@reconnect_delay}\n"
 
-            raise "Max number of reconnection attempts reached" if max_reconnect_attempts?
+            raise Stomp::Error::MaxReconnectAttempts if max_reconnect_attempts?
 
             sleep(@reconnect_delay)
             

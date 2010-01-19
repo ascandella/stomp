@@ -71,6 +71,18 @@ class TestStomp < Test::Unit::TestCase
   def test_connection_frame
   	assert_not_nil @conn.connection_frame
   end
+  
+  def test_messages_with_multipleLine_ends
+    @conn.subscribe make_destination
+    @conn.send make_destination, "a\n\n"
+    @conn.send make_destination, "b\n\na\n\n"
+    
+    msg_a = @conn.receive
+    msg_b = @conn.receive
+
+    assert_equal "a\n\n", msg_a.body
+    assert_equal "b\n\na\n\n", msg_b.body
+  end
 
   def test_send_two_messages
     @conn.subscribe make_destination

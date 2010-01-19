@@ -17,5 +17,11 @@ module Stomp
         "Packet parsing timeout"
       end
     end
+    
+    class MaxReconnectAttempts < RuntimeError
+      def message
+        "Maximum number of reconnection attempts reached"
+      end
+    end
   end
 end
