@@ -26,7 +26,26 @@ describe Stomp::Message do
       end
 
       it 'should parse the body' do
-        subject.body.should == @message[3].chomp
+        subject.body.should == @message[3]
+      end
+
+      it 'should parse the command' do
+        subject.command.should == @message[0].chomp
+      end
+    end
+    
+    context 'with multiple line ends on the body' do
+      subject do
+        @message = ["CONNECTED\n", "session:host_address\n", "\n", "body\n\n value\n\n\n", "\000\n"]
+        Stomp::Message.new(@message.join)
+      end
+
+      it 'should parse the headers' do
+        subject.headers.should ==  {'session' => 'host_address'}
+      end
+
+      it 'should parse the body' do
+        subject.body.should == @message[3]
       end
 
       it 'should parse the command' do
