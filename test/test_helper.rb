@@ -3,7 +3,6 @@ require 'timeout'
 require 'stomp'
 
 require 'rubygems'
-require 'ruby-debug' unless RUBY_VERSION =~ /1.9/
 
 $:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 # Helper routines
