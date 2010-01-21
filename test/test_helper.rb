@@ -1,10 +1,9 @@
+$:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
+
 require 'test/unit'
 require 'timeout'
 require 'stomp'
 
-require 'rubygems'
-
-$:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 # Helper routines
 module TestBase
   def user
