@@ -1,4 +1,4 @@
-== 1.1.4 2010-13-01
+== 1.1.4 2010-21-01
 
 * Added unreceive message method that sends the message back to its queue or to the 
   dead letter queue, depending on the :max_redeliveries option, similar to a13m one.
@@ -11,6 +11,7 @@
 * Fixed broken poll method on Connection
 * Fixed broken close method on Client
 * Added connection_frame accessor
+* Added disconnect receipt
 
 == 1.1.3 2009-24-11
 
