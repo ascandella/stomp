@@ -175,8 +175,8 @@ describe Stomp::Connection do
     
     describe "when using ssl" do
 
-      # Mocking openssl gem, so we can test without requiring openssl  
-      module OpenSSL
+      # Mocking ruby's openssl extension, so we can test without requiring openssl  
+      module ::OpenSSL
         module SSL
           VERIFY_NONE = 0
           
