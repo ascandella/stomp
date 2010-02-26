@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + '/spec_helper'
+require 'spec_helper'
 
 describe Stomp::Connection do
 
@@ -75,17 +75,17 @@ describe Stomp::Connection do
     context "when dealing with content-length header" do
       it "should not suppress it when receiving :suppress_content_length => false" do
         @tcp_socket.should_receive(:puts).with("content-length:7")
-        @connection.send "/queue", "message", :suppress_content_length => false
+        @connection.publish "/queue", "message", :suppress_content_length => false
       end
       
       it "should not suppress it when :suppress_content_length is nil" do
         @tcp_socket.should_receive(:puts).with("content-length:7")
-        @connection.send "/queue", "message"
+        @connection.publish "/queue", "message"
       end
     
       it "should suppress it when receiving :suppress_content_length => true" do
         @tcp_socket.should_not_receive(:puts).with("content-length:7")
-        @connection.send "/queue", "message", :suppress_content_length => true
+        @connection.publish "/queue", "message", :suppress_content_length => true
       end
     end
     
@@ -133,7 +133,7 @@ describe Stomp::Connection do
       
       it "should send the message back to the queue it came" do
         @connection.subscribe(@message.headers["destination"], :ack => "client")
-        @connection.should_receive(:send).with(@message.headers["destination"], @message.body, @retry_headers)
+        @connection.should_receive(:publish).with(@message.headers["destination"], @message.body, @retry_headers)
         @connection.unreceive @message
       end
       
@@ -150,7 +150,7 @@ describe Stomp::Connection do
         @message.headers["retry_count"] = max_redeliveries
         transaction_id = "transaction-#{@message.headers["message-id"]}-#{@message.headers["retry_count"]}"
         @retry_headers = @retry_headers.merge :transaction => transaction_id, :retry_count => @message.headers["retry_count"] + 1
-        @connection.should_receive(:send).with(@message.headers["destination"], @message.body, @retry_headers)
+        @connection.should_receive(:publish).with(@message.headers["destination"], @message.body, @retry_headers)
         @connection.unreceive @message, :dead_letter_queue => dead_letter_queue, :max_redeliveries => max_redeliveries
       end
       
@@ -161,12 +161,12 @@ describe Stomp::Connection do
         @message.headers["retry_count"] = max_redeliveries + 1
         transaction_id = "transaction-#{@message.headers["message-id"]}-#{@message.headers["retry_count"]}"
         @retry_headers = @retry_headers.merge :persistent => true, :transaction => transaction_id, :retry_count => @message.headers["retry_count"] + 1
-        @connection.should_receive(:send).with(dead_letter_queue, @message.body, @retry_headers)
+        @connection.should_receive(:publish).with(dead_letter_queue, @message.body, @retry_headers)
         @connection.unreceive @message, :dead_letter_queue => dead_letter_queue, :max_redeliveries => max_redeliveries
       end
       
       it "should rollback the transaction and raise the exception if happened during transaction" do
-        @connection.should_receive(:send).and_raise "Error"
+        @connection.should_receive(:publish).and_raise "Error"
         @connection.should_receive(:abort).with(@transaction_id)
         lambda {@connection.unreceive @message}.should raise_error("Error")
       end

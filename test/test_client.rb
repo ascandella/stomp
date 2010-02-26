@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), 'test_helper.rb')
+require 'test_helper'
 
 class TestClient < Test::Unit::TestCase
   include TestBase
@@ -12,7 +12,7 @@ class TestClient < Test::Unit::TestCase
   end
 
   def test_ack_api_works
-    @client.send destination, message_text, {:suppress_content_length => true}
+    @client.publish destination, message_text, {:suppress_content_length => true}
 
     received = nil
     @client.subscribe(destination, {:ack => 'client'}) {|msg| received = msg}
@@ -28,7 +28,7 @@ class TestClient < Test::Unit::TestCase
   def test_asynch_subscribe
     received = false
     @client.subscribe(destination) {|msg| received = msg}
-    @client.send destination, message_text
+    @client.publish destination, message_text
     sleep 0.01 until received
 
     assert_equal message_text, received.body
@@ -36,7 +36,7 @@ class TestClient < Test::Unit::TestCase
 
   # BROKEN
   def test_noack
-    @client.send destination, message_text
+    @client.publish destination, message_text
 
     received = nil
     @client.subscribe(destination, :ack => :client) {|msg| received = msg}
@@ -56,7 +56,7 @@ class TestClient < Test::Unit::TestCase
 
   def test_receipts
     receipt = false
-    @client.send(destination, message_text) {|r| receipt = r}
+    @client.publish(destination, message_text) {|r| receipt = r}
     sleep 0.1 until receipt
 
     message = nil
@@ -75,8 +75,8 @@ class TestClient < Test::Unit::TestCase
     @client = nil
   end
 
-  def test_send_then_sub
-    @client.send destination, message_text
+  def test_publish_then_sub
+    @client.publish destination, message_text
     message = nil
     @client.subscribe(destination) {|m| message = m}
     sleep 0.01 until message
@@ -90,9 +90,9 @@ class TestClient < Test::Unit::TestCase
     end
   end
 
-  def test_transactional_send
+  def test_transactional_publish
     @client.begin 'tx1'
-    @client.send destination, message_text, :transaction => 'tx1'
+    @client.publish destination, message_text, :transaction => 'tx1'
     @client.commit 'tx1'
 
     message = nil
@@ -102,13 +102,13 @@ class TestClient < Test::Unit::TestCase
     assert_equal message_text, message.body
   end
 
-  def test_transaction_send_then_rollback
+  def test_transaction_publish_then_rollback
     @client.begin 'tx1'
-    @client.send destination, "first_message", :transaction => 'tx1'
+    @client.publish destination, "first_message", :transaction => 'tx1'
     @client.abort 'tx1'
 
     @client.begin 'tx1'
-    @client.send destination, "second_message", :transaction => 'tx1'
+    @client.publish destination, "second_message", :transaction => 'tx1'
     @client.commit 'tx1'
 
     message = nil
@@ -118,7 +118,7 @@ class TestClient < Test::Unit::TestCase
   end
 
   def test_transaction_ack_rollback_with_new_client
-    @client.send destination, message_text
+    @client.publish destination, message_text
 
     @client.begin 'tx1'
     message = nil
@@ -146,7 +146,7 @@ class TestClient < Test::Unit::TestCase
   end
 
   def test_transaction_with_client_side_redelivery
-    @client.send destination, message_text
+    @client.publish destination, message_text
 
     @client.begin 'tx1'
     message = nil
@@ -177,7 +177,7 @@ class TestClient < Test::Unit::TestCase
     message = nil
     client = Stomp::Client.new(user, passcode, host, port, true)
     client.subscribe(destination, :ack => 'client') { |m| message = m }
-    @client.send destination, message_text
+    @client.publish destination, message_text
     Timeout::timeout(4) do
       sleep 0.01 until message
     end

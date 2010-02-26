@@ -1,5 +1,5 @@
-require File.dirname(__FILE__) + '/spec_helper'
-require File.dirname(__FILE__) + '/client_shared_examples'
+require 'spec_helper'
+require 'client_shared_examples'
 
 describe Stomp::Client do
 

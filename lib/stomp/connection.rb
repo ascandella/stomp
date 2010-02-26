@@ -9,7 +9,7 @@ module Stomp
   class Connection
     attr_reader :connection_frame
     attr_reader :disconnect_receipt
-    alias :obj_send :send
+    #alias :obj_send :send
 
     def self.default_port(ssl)
       ssl ? 61612 : 61613
@@ -239,13 +239,22 @@ module Stomp
       end
     end
 
-    # Send message to destination
+    # Publish message to destination
     #
     # To disable content length header ( :suppress_content_length => true )
     # Accepts a transaction header ( :transaction => 'some_transaction_id' )
-    def send(destination, message, headers = {})
+    def publish(destination, message, headers = {})
       headers[:destination] = destination
       transmit("SEND", headers, message)
+    end
+    
+    def obj_send(*args)
+      __send__(*args)
+    end
+    
+    def send(*args)
+      warn("This method is deprecated and will be removed on the next release. Use 'publish' instead")
+      publish(*args)
     end
     
     # Send a message back to the source or to the dead letter queue
@@ -269,10 +278,10 @@ module Stomp
         end
         
         if retry_count <= options[:max_redeliveries]
-          self.send(message.headers[:destination], message.body, message.headers.merge(:transaction => transaction_id))
+          self.publish(message.headers[:destination], message.body, message.headers.merge(:transaction => transaction_id))
         else
           # Poison ack, sending the message to the DLQ
-          self.send(options[:dead_letter_queue], message.body, message.headers.merge(:transaction => transaction_id, :persistent => true))
+          self.publish(options[:dead_letter_queue], message.body, message.headers.merge(:transaction => transaction_id, :persistent => true))
         end
         self.commit transaction_id
       rescue Exception => exception

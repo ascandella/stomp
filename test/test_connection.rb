@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), 'test_helper.rb')
+require 'test_helper'
 
 class TestStomp < Test::Unit::TestCase
   include TestBase
@@ -17,7 +17,7 @@ class TestStomp < Test::Unit::TestCase
 
   def test_explicit_receive
     @conn.subscribe make_destination
-    @conn.send make_destination, "test_stomp#test_explicit_receive"
+    @conn.publish make_destination, "test_stomp#test_explicit_receive"
     msg = @conn.receive
     assert_equal "test_stomp#test_explicit_receive", msg.body
   end
@@ -40,14 +40,14 @@ class TestStomp < Test::Unit::TestCase
 
   def test_client_ack_with_symbol
     @conn.subscribe make_destination, :ack => :client
-    @conn.send make_destination, "test_stomp#test_client_ack_with_symbol"
+    @conn.publish make_destination, "test_stomp#test_client_ack_with_symbol"
     msg = @conn.receive
     @conn.ack msg.headers['message-id']
   end
 
   def test_embedded_null
     @conn.subscribe make_destination
-    @conn.send make_destination, "a\0"
+    @conn.publish make_destination, "a\0"
     msg = @conn.receive
     assert_equal "a\0" , msg.body
   end
@@ -66,14 +66,14 @@ class TestStomp < Test::Unit::TestCase
 
   def test_response_is_instance_of_message_class
     @conn.subscribe make_destination
-    @conn.send make_destination, "a\0"
+    @conn.publish make_destination, "a\0"
     msg = @conn.receive
     assert_instance_of Stomp::Message , msg
   end
 
   def test_message_to_s
     @conn.subscribe make_destination
-    @conn.send make_destination, "a\0"
+    @conn.publish make_destination, "a\0"
     msg = @conn.receive
     assert_match /^<Stomp::Message headers=/ , msg.to_s
   end
@@ -84,8 +84,8 @@ class TestStomp < Test::Unit::TestCase
   
   def test_messages_with_multipleLine_ends
     @conn.subscribe make_destination
-    @conn.send make_destination, "a\n\n"
-    @conn.send make_destination, "b\n\na\n\n"
+    @conn.publish make_destination, "a\n\n"
+    @conn.publish make_destination, "b\n\na\n\n"
     
     msg_a = @conn.receive
     msg_b = @conn.receive
@@ -94,10 +94,10 @@ class TestStomp < Test::Unit::TestCase
     assert_equal "b\n\na\n\n", msg_b.body
   end
 
-  def test_send_two_messages
+  def test_publish_two_messages
     @conn.subscribe make_destination
-    @conn.send make_destination, "a\0"
-    @conn.send make_destination, "b\0"
+    @conn.publish make_destination, "a\0"
+    @conn.publish make_destination, "b\0"
     msg_a = @conn.receive
     msg_b = @conn.receive
 
@@ -118,9 +118,9 @@ class TestStomp < Test::Unit::TestCase
       sleep 0.01 while @conn.poll!=nil
 
       @conn.begin "tx1"
-      @conn.send make_destination, "txn message", 'transaction' => "tx1"
+      @conn.publish make_destination, "txn message", 'transaction' => "tx1"
 
-      @conn.send make_destination, "first message"
+      @conn.publish make_destination, "first message"
 
       sleep 0.01
       msg = @conn.receive

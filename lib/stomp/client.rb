@@ -10,7 +10,8 @@ module Stomp
   class Client
 
     attr_reader :login, :passcode, :host, :port, :reliable, :parameters
-    alias :obj_send :send
+    
+    #alias :obj_send :send
 
     # A new Client object can be initialized using two forms:
     #
@@ -177,17 +178,27 @@ module Stomp
     def unreceive(message)
       @connection.unreceive message
     end
-    # Send message to destination
+    
+    # Publishes message to destination
     #
     # If a block is given a receipt will be requested and passed to the
     # block on receipt
     #
     # Accepts a transaction header ( :transaction => 'some_transaction_id' )
-    def send(destination, message, headers = {})
+    def publish(destination, message, headers = {})
       if block_given?
         headers['receipt'] = register_receipt_listener lambda {|r| yield r}
       end
-      @connection.send(destination, message, headers)
+      @connection.publish(destination, message, headers)
+    end
+    
+    def obj_send(*args)
+      __send__(*args)
+    end
+    
+    def send(*args)
+      warn("This method is deprecated and will be removed on the next release. Use 'publish' instead")
+      publish(*args)
     end
     
     def connection_frame
