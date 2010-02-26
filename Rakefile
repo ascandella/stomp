@@ -13,35 +13,38 @@
 #   limitations under the License.
 
 require 'rubygems'
-require 'rake/gempackagetask'
+require 'rake'
 require 'rake/testtask'
-require 'rake/rdoctask'
 require 'spec/rake/spectask'
+require "lib/stomp/version"
 
-# read the contents of the gemspec, eval it, and assign it to 'spec'
-# this lets us maintain all gemspec info in one place.  Nice and DRY.
-spec = eval(IO.read("stomp.gemspec"))
-
-Rake::GemPackageTask.new(spec) do |pkg|
-  pkg.gem_spec = spec
-  pkg.need_tar = true
+begin
+  require "hanna/rdoctask"
+rescue LoadError => e
+  require "rake/rdoctask"
 end
 
-task :install => [:package] do
-  sh %{sudo gem install pkg/#{GEM}-#{VERSION}}
+begin
+  require 'jeweler'
+  Jeweler::Tasks.new do |gem|
+    gem.name = "stomp"
+    gem.version = Stomp::Version::STRING
+    gem.summary = %Q{Ruby client for the Stomp messaging protocol}
+    gem.description = %Q{Ruby client for the Stomp messaging protocol}
+    gem.email = ["brianm@apache.org", 'marius@stones.com', 'morellon@gmail.com']
+    gem.homepage = "http://stomp.codehaus.org/"
+    gem.authors = ["Brian McCallister", 'Marius Mathiesen', 'Thiago Morello']
+    gem.add_development_dependency "rspec"
+  end
+  Jeweler::GemcutterTasks.new
+rescue LoadError
+  puts "Jeweler not available. Install it with: gem install jeweler"
 end
 
-Rake::TestTask.new do |t|
-  t.libs << "test"
-  t.test_files = FileList['test/test*.rb']
-  t.verbose = true
-end
-
-Rake::RDocTask.new do |rd|
-  rd.main = "README.rdoc"
-  rd.rdoc_files.include("README.rdoc", "lib/**/*.rb")
-  rd.rdoc_dir = 'doc'
-  rd.options = spec.rdoc_options
+desc 'Run the specs'
+Spec::Rake::SpecTask.new(:spec) do |t|
+  t.spec_opts = ['--colour --format specdoc --loadby mtime --reverse']
+  t.spec_files = FileList['spec/**/*_spec.rb']
 end
 
 desc "Rspec : run all with RCov"
@@ -51,9 +54,22 @@ Spec::Rake::SpecTask.new('spec:rcov') do |t|
   t.rcov_opts = ['--exclude', 'gems', '--exclude', 'spec']
 end
 
-desc "RSpec : run all"
-Spec::Rake::SpecTask.new('spec') do |t|
-  t.spec_files = FileList['spec/**/*.rb']
-  t.spec_opts = ["--color", "--format", "specdoc"]
+Rake::RDocTask.new do |rdoc|
+  rdoc.main = "README.rdoc"
+  rdoc.rdoc_dir = "doc"
+  rdoc.title = "Stomp"
+  rdoc.options += %w[ --line-numbers --inline-source --charset utf-8 ]
+  rdoc.rdoc_files.include("README.rdoc", "CHANGELOG.rdoc")
+  rdoc.rdoc_files.include("lib/**/*.rb")
 end
+
+Rake::TestTask.new do |t|
+  t.libs << "test"
+  t.test_files = FileList['test/test*.rb']
+  t.verbose = true
+end
+
+task :default => :spec
+
+
 

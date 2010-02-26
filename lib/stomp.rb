@@ -13,11 +13,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-require File.join(File.dirname(__FILE__), 'stomp', 'ext', 'hash')
-require File.join(File.dirname(__FILE__), 'stomp', 'connection')
-require File.join(File.dirname(__FILE__), 'stomp', 'client')
-require File.join(File.dirname(__FILE__), 'stomp', 'message')
-require File.join(File.dirname(__FILE__), 'stomp', 'errors')
+require 'stomp/ext/hash'
+require 'stomp/connection'
+require 'stomp/client'
+require 'stomp/message'
+require 'stomp/errors'
 
 module Stomp
 end
