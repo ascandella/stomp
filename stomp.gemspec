@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{stomp}
-  s.version = "1.1.4"
+  s.version = "1.1.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Brian McCallister", "Marius Mathiesen", "Thiago Morello"]
-  s.date = %q{2010-02-26}
+  s.date = %q{2010-03-01}
   s.description = %q{Ruby client for the Stomp messaging protocol}
   s.email = ["brianm@apache.org", "marius@stones.com", "morellon@gmail.com"]
   s.executables = ["catstomp", "stompcat"]
@@ -19,6 +19,7 @@ Gem::Specification.new do |s|
   ]
   s.files = [
     ".gitignore",
+     "CHANGELOG.rdoc",
      "LICENSE",
      "README.rdoc",
      "Rakefile",
@@ -32,6 +33,7 @@ Gem::Specification.new do |s|
      "lib/stomp/errors.rb",
      "lib/stomp/ext/hash.rb",
      "lib/stomp/message.rb",
+     "lib/stomp/version.rb",
      "spec/client_shared_examples.rb",
      "spec/client_spec.rb",
      "spec/connection_spec.rb",
