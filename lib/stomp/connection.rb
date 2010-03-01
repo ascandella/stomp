@@ -281,7 +281,7 @@ module Stomp
           self.publish(message.headers[:destination], message.body, message.headers.merge(:transaction => transaction_id))
         else
           # Poison ack, sending the message to the DLQ
-          self.publish(options[:dead_letter_queue], message.body, message.headers.merge(:transaction => transaction_id, :persistent => true))
+          self.publish(options[:dead_letter_queue], message.body, message.headers.merge(:transaction => transaction_id, :original_destination => message.headers[:destination], :persistent => true))
         end
         self.commit transaction_id
       rescue Exception => exception

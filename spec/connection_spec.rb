@@ -160,7 +160,7 @@ describe Stomp::Connection do
         
         @message.headers["retry_count"] = max_redeliveries + 1
         transaction_id = "transaction-#{@message.headers["message-id"]}-#{@message.headers["retry_count"]}"
-        @retry_headers = @retry_headers.merge :persistent => true, :transaction => transaction_id, :retry_count => @message.headers["retry_count"] + 1
+        @retry_headers = @retry_headers.merge :persistent => true, :transaction => transaction_id, :retry_count => @message.headers["retry_count"] + 1, :original_destination=> @message.headers["destination"]
         @connection.should_receive(:publish).with(dead_letter_queue, @message.body, @retry_headers)
         @connection.unreceive @message, :dead_letter_queue => dead_letter_queue, :max_redeliveries => max_redeliveries
       end
