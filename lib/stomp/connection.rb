@@ -261,6 +261,7 @@ module Stomp
     #
     # Accepts a dead letter queue option ( :dead_letter_queue => "/queue/DLQ" )
     # Accepts a limit number of redeliveries option ( :max_redeliveries => 6 )
+    # Accepts a force client acknowledgement option (:force_client_ack => true)
     def unreceive(message, options = {})
       options = { :dead_letter_queue => "/queue/DLQ", :max_redeliveries => 6 }.merge options
       # Lets make sure all keys are symbols
@@ -269,12 +270,13 @@ module Stomp
       retry_count = message.headers[:retry_count].to_i || 0
       message.headers[:retry_count] = retry_count + 1
       transaction_id = "transaction-#{message.headers[:'message-id']}-#{retry_count}"
+      message_id = message.headers.delete(:'message-id')
       
       begin
         self.begin transaction_id
         
-        if client_ack?(message)
-          self.ack(message.headers[:'message-id'], :transaction => transaction_id)
+        if client_ack?(message) || options[:force_client_ack]
+          self.ack(message_id, :transaction => transaction_id)
         end
         
         if retry_count <= options[:max_redeliveries]

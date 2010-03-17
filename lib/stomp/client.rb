@@ -173,10 +173,9 @@ module Stomp
     end
     
     # Unreceive a message, sending it back to its queue or to the DLQ
-    # client acknowledgement ( connection.subscribe "/queue/a", :ack => 'client'g
     #
-    def unreceive(message)
-      @connection.unreceive message
+    def unreceive(message, options = {})
+      @connection.unreceive(message, options)
     end
     
     # Publishes message to destination

@@ -100,7 +100,6 @@ describe Stomp::Connection do
         
         @retry_headers = {
           :destination => @message.headers["destination"],
-          :'message-id' => @message.headers["message-id"],
           :transaction => @transaction_id,
           :retry_count => 1
         }
@@ -113,9 +112,15 @@ describe Stomp::Connection do
       end
     
       it "should acknowledge the original message if ack mode is client" do
-        @connection.should_receive(:ack)
+        @connection.should_receive(:ack).with(@message.headers["message-id"], :transaction => @transaction_id)
         @connection.subscribe(@message.headers["destination"], :ack => "client")
         @connection.unreceive @message
+      end
+      
+      it "should acknowledge the original message if forced" do      
+        @connection.subscribe(@message.headers["destination"])
+        @connection.should_receive(:ack)
+        @connection.unreceive(@message, :force_client_ack => true)
       end
       
       it "should not acknowledge the original message if ack mode is not client or it did not subscribe to the queue" do      

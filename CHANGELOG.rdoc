@@ -1,6 +1,9 @@
 == 1.1.5 ?
 
 * Added publish method (send is now deprecated)
+* Changes on Rake File
+* Added original_destination header to unreceive
+* suppress content length header is send on the message for future handling (like unreceive)
 
 == 1.1.4 2010-21-01
 
