@@ -154,7 +154,7 @@ module Stomp
     end
     
     def change_host
-      @parameters[:hosts].shuffle! if @parameters[:randomize]
+      @parameters[:hosts] = @parameters[:hosts].sort_by { rand } if @parameters[:randomize]
       
       # Set first as master and send it to the end of array
       current_host = @parameters[:hosts].shift
