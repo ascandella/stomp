@@ -334,11 +334,12 @@ describe Stomp::Connection do
       @parameters[:max_reconnect_attempts] = limit
       @connection = Stomp::Connection.new(@parameters)
       
-      @connection.instance_variable_set(:@connection_attempts, limit)
+      @connection.instance_variable_set(:@connection_attempts, limit-1)
       @connection.max_reconnect_attempts?.should be_false
       
-      @connection.instance_variable_set(:@connection_attempts, limit+1)
+      @connection.instance_variable_set(:@connection_attempts, limit)
       @connection.max_reconnect_attempts?.should be_true
+      
     end
   end
 end

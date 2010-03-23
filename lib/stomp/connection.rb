@@ -169,7 +169,7 @@ module Stomp
     end
     
     def max_reconnect_attempts?
-      !(@parameters.nil? || @parameters[:max_reconnect_attempts].nil?) && @parameters[:max_reconnect_attempts] != 0 && @connection_attempts > @parameters[:max_reconnect_attempts]
+      !(@parameters.nil? || @parameters[:max_reconnect_attempts].nil?) && @parameters[:max_reconnect_attempts] != 0 && @connection_attempts >= @parameters[:max_reconnect_attempts]
     end
     
     def increase_reconnect_delay
