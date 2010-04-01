@@ -20,5 +20,5 @@ class ::Hash
     end
 
     symbolized
-  end unless self.respond_to? :symbolize_keys
+  end unless self.method_defined?(:symbolize_keys)
 end
