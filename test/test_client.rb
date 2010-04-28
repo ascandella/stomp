@@ -178,13 +178,29 @@ class TestClient < Test::Unit::TestCase
   def test_unsubscribe
     message = nil
     client = Stomp::Client.new(user, passcode, host, port, true)
-    client.subscribe(destination, :ack => 'client') { |m| message = m }
-    @client.publish destination, message_text
-    Timeout::timeout(4) do
-      sleep 0.01 until message
-    end
-    client.unsubscribe destination # was throwing exception on unsub at one point
-
+    assert_nothing_raised {
+      client.subscribe(destination, :ack => 'client') { |m| message = m }
+      @client.publish destination, message_text
+      Timeout::timeout(4) do
+        sleep 0.01 until message
+      end
+    }
+    assert_equal message_text, message.body
+    assert_nothing_raised {
+      client.unsubscribe destination # was throwing exception on unsub at one point
+      client.close
+    }
+    #  Same message should remain on the queue.  Receive it again with ack=>auto.
+    message_copy = nil
+    client = Stomp::Client.new(user, passcode, host, port, true)
+    assert_nothing_raised {
+      client.subscribe(destination, :ack => 'auto') { |m| message_copy = m }
+      Timeout::timeout(4) do
+        sleep 0.01 until message_copy
+      end
+    }
+    assert_equal message_text, message_copy.body
+    assert_equal message.headers['message-id'], message_copy.headers['message-id']
   end
 
   private
