@@ -107,6 +107,20 @@ class TestStomp < Test::Unit::TestCase
     assert_equal "b\0", msg_b.body
   end
 
+  def test_thread_hang_one
+    msg = nil
+    Thread.new(@conn) do |amq|
+        while true
+            msg = amq.receive
+        end
+    end
+    #
+    @conn.subscribe("/topic/thread.test")
+    @conn.publish("/topic/thread.test", Time.now.to_s)
+    sleep 1
+    assert_not_nil msg
+  end
+
   private
     def make_destination
       "/queue/test/ruby/stomp/" + name
