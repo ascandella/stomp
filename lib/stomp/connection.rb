@@ -71,8 +71,11 @@ module Stomp
         @parameters = nil
       end
       
+      # Use Mutexes:  only one lock per each thread
+      # Revert to original implementation attempt
       @transmit_semaphore = Mutex.new
-      @read_semaphore = Monitor.new
+      @read_semaphore = Mutex.new
+      @socket_semaphore = Mutex.new
       
       @subscriptions = {}
       @failure = nil
@@ -98,7 +101,7 @@ module Stomp
     end
 
     def socket
-      @read_semaphore.synchronize do
+      @socket_semaphore.synchronize do
         used_socket = @socket
         used_socket = nil if closed?
         
