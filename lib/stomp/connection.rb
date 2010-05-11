@@ -311,10 +311,10 @@ module Stomp
     # Return a pending message if one is available, otherwise
     # return nil
     def poll
-      @read_semaphore.synchronize do
-        return nil if @socket.nil? || !@socket.ready?
-        receive
-      end
+      # No need for a read lock here.  The receive method eventually fullfills
+      # that requirement.
+      return nil if @socket.nil? || !@socket.ready?
+      receive
     end
 
     # Receive a frame, block until the frame is received
