@@ -286,15 +286,12 @@ module Stomp
 
         @listener_thread = Thread.start do
           while true
-            message = @connection.poll
-            case
-            when message.nil?
-              sleep 0.1
-            when message.command == 'MESSAGE'
+            message = @connection.receive
+            if message.command == 'MESSAGE'
               if listener = @listeners[message.headers['destination']]
                 listener.call(message)
               end
-            when message.command == 'RECEIPT'
+            elsif message.command == 'RECEIPT'
               if listener = @receipt_listeners[message.headers['receipt-id']]
                 listener.call(message)
               end

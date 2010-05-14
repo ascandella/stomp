@@ -1,5 +1,4 @@
 require 'socket'
-require 'monitor'
 require 'timeout'
 
 module Stomp
