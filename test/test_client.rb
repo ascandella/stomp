@@ -36,7 +36,6 @@ class TestClient < Test::Unit::TestCase
     assert_equal message_text, received.body
   end
 
-  # BROKEN
   def test_noack
     @client.publish destination, message_text
 
@@ -49,11 +48,13 @@ class TestClient < Test::Unit::TestCase
     # was never acked so should be resent to next client
 
     @client = Stomp::Client.new(user, passcode, host, port)
-    received = nil
-    @client.subscribe(destination) {|msg| received = msg}
-    sleep 0.01 until received
+    received2 = nil
+    @client.subscribe(destination) {|msg| received2 = msg}
+    sleep 0.01 until received2
 
-    assert_equal message_text, received.body
+    assert_equal message_text, received2.body
+    assert_equal received.body, received2.body
+    assert_equal received.headers['message-id'], received2.headers['message-id']
   end
 
   def test_receipts
