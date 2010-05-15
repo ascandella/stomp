@@ -108,17 +108,104 @@ class TestStomp < Test::Unit::TestCase
   end
 
   def test_thread_hang_one
-    msg = nil
+    received = nil
     Thread.new(@conn) do |amq|
         while true
-            msg = amq.receive
+            received = amq.receive
         end
     end
     #
-    @conn.subscribe("/topic/thread.test")
-    @conn.publish("/topic/thread.test", Time.now.to_s)
+    @conn.subscribe( make_destination )
+    message = Time.now.to_s
+    @conn.publish(make_destination, message)
     sleep 1
-    assert_not_nil msg
+    assert_not_nil received
+    assert_equal message, received.body
+  end
+
+  def test_thread_poll_one
+    received = nil
+    Thread.new(@conn) do |amq|
+        while true
+          received = amq.poll
+          # One message is needed
+          Thread.exit if received
+          sleep 0.1
+        end
+    end
+    #
+    @conn.subscribe( make_destination )
+    message = Time.now.to_s
+    @conn.publish(make_destination, message)
+    sleep 1
+    assert_not_nil received
+    assert_equal message, received.body
+  end
+
+  def test_multi_thread_receive
+    # An arbitrary number
+    max_threads = 20
+    lock = Mutex.new
+    msg_ctr = 0
+    #
+    1.upto(max_threads) do |tnum|
+      Thread.new(@conn) do |amq|
+        while true
+          received = amq.receive
+          lock.synchronize do
+            msg_ctr += 1
+          end
+          # Simulate message processing
+          sleep 0.05
+        end
+      end
+    end
+    #
+    @conn.subscribe( make_destination )
+    # Another arbitrary number
+    max_msgs = 100
+    1.upto(max_msgs) do |mnum|
+      msg = Time.now.to_s + " #{mnum}"
+      @conn.publish(make_destination, msg)
+    end
+    # This sleep needs to be 'long enough'
+    sleep 1
+    # The only assertion in this test method
+    assert_equal msg_ctr, max_msgs
+  end
+
+  def test_multi_thread_poll
+    # An arbitrary number
+    max_threads = 20
+    lock = Mutex.new
+    msg_ctr = 0
+    #
+    1.upto(max_threads) do |tnum|
+      Thread.new(@conn) do |amq|
+        while true
+          received = amq.poll
+          if received
+            lock.synchronize do
+              msg_ctr += 1
+            end
+          else
+            sleep 0.1
+          end
+        end
+      end
+    end
+    #
+    @conn.subscribe( make_destination )
+    # Another arbitrary number
+    max_msgs = 100
+    1.upto(max_msgs) do |mnum|
+      msg = Time.now.to_s + " #{mnum}"
+      @conn.publish(make_destination, msg)
+    end
+    # This sleep needs to be 'long enough'
+    sleep 1
+    # The only assertion in this test method
+    assert_equal msg_ctr, max_msgs
   end
 
   private
@@ -147,3 +234,4 @@ class TestStomp < Test::Unit::TestCase
       assert_equal "txn message", msg.body
     end
 end
+
