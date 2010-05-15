@@ -204,6 +204,57 @@ class TestClient < Test::Unit::TestCase
     assert_equal message.headers['message-id'], message_copy.headers['message-id']
   end
 
+  def test_thread_one_subscribe
+    msg = nil
+    Thread.new(@client) do |acli|
+      assert_nothing_raised {
+        acli.subscribe(destination) { |m| msg = m }
+        Timeout::timeout(4) do
+          sleep 0.01 until msg
+        end
+      }
+    end
+    #
+    @client.publish(destination, message_text)
+    sleep 1
+    assert_not_nil msg
+  end
+
+  def test_thread_multi_subscribe
+    # Arbitrary numbers:  however this test can fail when running on a 
+    # machine woth few resources, or against a slow message broker.
+    max_threads = 20
+    max_msgs = 50
+    sleep_time = 3
+    #
+    lock = Mutex.new
+    msg_ctr = 0
+    1.upto(max_threads) do |tnum|
+      # Threads within threads .....
+      Thread.new(@client) do |acli|
+        assert_nothing_raised {
+          acli.subscribe(destination) { |m| 
+            msg = m
+            lock.synchronize do
+              msg_ctr += 1
+            end
+            # Simulate message processing
+            sleep 0.05
+          }
+        }
+      end
+    end
+    #
+    1.upto(max_msgs) do |mnum|
+      msg = Time.now.to_s + " #{mnum}"
+      @client.publish(destination, message_text)
+    end
+    # This sleep needs to be 'long enough'
+    sleep sleep_time
+    # The only assertion in this test method
+    assert_equal max_msgs, msg_ctr
+  end
+
   private
     def message_text
       "test_client#" + name
