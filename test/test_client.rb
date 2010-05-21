@@ -7,6 +7,9 @@ class TestClient < Test::Unit::TestCase
   
   def setup
     @client = Stomp::Client.new(user, passcode, host, port)
+    # Multi_thread test data
+    @max_threads = 20
+    @max_msgs = 50
   end
 
   def teardown
@@ -221,15 +224,10 @@ class TestClient < Test::Unit::TestCase
   end
 
   def test_thread_multi_subscribe
-    # Arbitrary numbers:  however this test can fail when running on a 
-    # machine woth few resources, or against a slow message broker.
-    max_threads = 20
-    max_msgs = 50
-    sleep_time = 3
     #
     lock = Mutex.new
     msg_ctr = 0
-    1.upto(max_threads) do |tnum|
+    1.upto(@max_threads) do |tnum|
       # Threads within threads .....
       Thread.new(@client) do |acli|
         assert_nothing_raised {
@@ -245,14 +243,21 @@ class TestClient < Test::Unit::TestCase
       end
     end
     #
-    1.upto(max_msgs) do |mnum|
+    1.upto(@max_msgs) do |mnum|
       msg = Time.now.to_s + " #{mnum}"
       @client.publish(destination, message_text)
     end
-    # This sleep needs to be 'long enough'
-    sleep sleep_time
-    # The only assertion in this test method
-    assert_equal max_msgs, msg_ctr
+    #
+    max_sleep=5
+    sleep_incr = 0.10
+    total_slept = 0
+    while true
+      break if @max_msgs == msg_ctr
+      total_slept += sleep_incr
+      break if total_slept > max_sleep
+      sleep sleep_incr
+    end
+    assert_equal @max_msgs, msg_ctr
   end
 
   private

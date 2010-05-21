@@ -7,6 +7,9 @@ class TestStomp < Test::Unit::TestCase
   
   def setup
     @conn = Stomp::Connection.open(user, passcode, host, port)
+    # Data for multi_thread tests
+    @max_threads = 20
+    @max_msgs = 100
   end
 
   def teardown
@@ -143,12 +146,10 @@ class TestStomp < Test::Unit::TestCase
   end
 
   def test_multi_thread_receive
-    # An arbitrary number
-    max_threads = 20
     lock = Mutex.new
     msg_ctr = 0
     #
-    1.upto(max_threads) do |tnum|
+    1.upto(@max_threads) do |tnum|
       Thread.new(@conn) do |amq|
         while true
           received = amq.receive
@@ -162,25 +163,29 @@ class TestStomp < Test::Unit::TestCase
     end
     #
     @conn.subscribe( make_destination )
-    # Another arbitrary number
-    max_msgs = 100
-    1.upto(max_msgs) do |mnum|
+    1.upto(@max_msgs) do |mnum|
       msg = Time.now.to_s + " #{mnum}"
       @conn.publish(make_destination, msg)
     end
-    # This sleep needs to be 'long enough'
-    sleep 1
-    # The only assertion in this test method
-    assert_equal msg_ctr, max_msgs
+    #
+    max_sleep=5
+    sleep_incr = 0.10
+    total_slept = 0
+    while true
+      break if @max_msgs == msg_ctr
+      total_slept += sleep_incr
+      break if total_slept > max_sleep
+      sleep sleep_incr
+    end
+    assert_equal @max_msgs, msg_ctr
   end
 
   def test_multi_thread_poll
-    # An arbitrary number
-    max_threads = 20
+    #
     lock = Mutex.new
     msg_ctr = 0
     #
-    1.upto(max_threads) do |tnum|
+    1.upto(@max_threads) do |tnum|
       Thread.new(@conn) do |amq|
         while true
           received = amq.poll
@@ -188,24 +193,32 @@ class TestStomp < Test::Unit::TestCase
             lock.synchronize do
               msg_ctr += 1
             end
+            # Simulate message processing
+            sleep 0.05
           else
-            sleep 0.1
+            # Wait a bit for more work
+            sleep 0.05
           end
         end
       end
     end
     #
     @conn.subscribe( make_destination )
-    # Another arbitrary number
-    max_msgs = 100
-    1.upto(max_msgs) do |mnum|
+    1.upto(@max_msgs) do |mnum|
       msg = Time.now.to_s + " #{mnum}"
       @conn.publish(make_destination, msg)
     end
-    # This sleep needs to be 'long enough'
-    sleep 1
-    # The only assertion in this test method
-    assert_equal msg_ctr, max_msgs
+    #
+    max_sleep=5
+    sleep_incr = 0.10
+    total_slept = 0
+    while true
+      break if @max_msgs == msg_ctr
+      total_slept += sleep_incr
+      break if total_slept > max_sleep
+      sleep sleep_incr
+    end
+    assert_equal @max_msgs, msg_ctr
   end
 
   private
