@@ -17,6 +17,7 @@ require 'stomp/ext/hash'
 require 'stomp/connection'
 require 'stomp/client'
 require 'stomp/message'
+require 'stomp/version'
 require 'stomp/errors'
 
 module Stomp
