@@ -1,4 +1,4 @@
-== ?
+== 1.1.6 2010-10-06
 
 * Fixed multi-thread app hanging
 
