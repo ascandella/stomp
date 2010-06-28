@@ -148,6 +148,7 @@ class TestStomp < Test::Unit::TestCase
   def test_multi_thread_receive
     lock = Mutex.new
     msg_ctr = 0
+    dest = make_destination
     #
     1.upto(@max_threads) do |tnum|
       Thread.new(@conn) do |amq|
@@ -162,10 +163,10 @@ class TestStomp < Test::Unit::TestCase
       end
     end
     #
-    @conn.subscribe( make_destination )
+    @conn.subscribe( dest )
     1.upto(@max_msgs) do |mnum|
       msg = Time.now.to_s + " #{mnum}"
-      @conn.publish(make_destination, msg)
+      @conn.publish(dest, msg)
     end
     #
     max_sleep=5
@@ -184,6 +185,7 @@ class TestStomp < Test::Unit::TestCase
     #
     lock = Mutex.new
     msg_ctr = 0
+    dest = make_destination
     #
     1.upto(@max_threads) do |tnum|
       Thread.new(@conn) do |amq|
@@ -203,10 +205,10 @@ class TestStomp < Test::Unit::TestCase
       end
     end
     #
-    @conn.subscribe( make_destination )
+    @conn.subscribe( dest )
     1.upto(@max_msgs) do |mnum|
       msg = Time.now.to_s + " #{mnum}"
-      @conn.publish(make_destination, msg)
+      @conn.publish(dest, msg)
     end
     #
     max_sleep=5
@@ -223,6 +225,7 @@ class TestStomp < Test::Unit::TestCase
 
   private
     def make_destination
+      name = caller_method_name unless name
       "/queue/test/ruby/stomp/" + name
     end
 

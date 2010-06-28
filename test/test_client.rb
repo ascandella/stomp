@@ -181,44 +181,47 @@ class TestClient < Test::Unit::TestCase
 
   def test_unsubscribe
     message = nil
+    dest = destination
+    to_send = message_text
     client = Stomp::Client.new(user, passcode, host, port, true)
     assert_nothing_raised {
-      client.subscribe(destination, :ack => 'client') { |m| message = m }
-      @client.publish destination, message_text
+      client.subscribe(dest, :ack => 'client') { |m| message = m }
+      @client.publish dest, to_send
       Timeout::timeout(4) do
         sleep 0.01 until message
       end
     }
-    assert_equal message_text, message.body
+    assert_equal to_send, message.body, "first body check"
     assert_nothing_raised {
-      client.unsubscribe destination # was throwing exception on unsub at one point
+      client.unsubscribe dest # was throwing exception on unsub at one point
       client.close
     }
     #  Same message should remain on the queue.  Receive it again with ack=>auto.
     message_copy = nil
     client = Stomp::Client.new(user, passcode, host, port, true)
     assert_nothing_raised {
-      client.subscribe(destination, :ack => 'auto') { |m| message_copy = m }
+      client.subscribe(dest, :ack => 'auto') { |m| message_copy = m }
       Timeout::timeout(4) do
         sleep 0.01 until message_copy
       end
     }
-    assert_equal message_text, message_copy.body
-    assert_equal message.headers['message-id'], message_copy.headers['message-id']
+    assert_equal to_send, message_copy.body, "second body check"
+    assert_equal message.headers['message-id'], message_copy.headers['message-id'], "header check"
   end
 
   def test_thread_one_subscribe
     msg = nil
+    dest = destination
     Thread.new(@client) do |acli|
       assert_nothing_raised {
-        acli.subscribe(destination) { |m| msg = m }
+        acli.subscribe(dest) { |m| msg = m }
         Timeout::timeout(4) do
           sleep 0.01 until msg
         end
       }
     end
     #
-    @client.publish(destination, message_text)
+    @client.publish(dest, message_text)
     sleep 1
     assert_not_nil msg
   end
@@ -227,11 +230,12 @@ class TestClient < Test::Unit::TestCase
     #
     lock = Mutex.new
     msg_ctr = 0
+    dest = destination
     1.upto(@max_threads) do |tnum|
       # Threads within threads .....
       Thread.new(@client) do |acli|
         assert_nothing_raised {
-          acli.subscribe(destination) { |m| 
+          acli.subscribe(dest) { |m| 
             msg = m
             lock.synchronize do
               msg_ctr += 1
@@ -245,7 +249,7 @@ class TestClient < Test::Unit::TestCase
     #
     1.upto(@max_msgs) do |mnum|
       msg = Time.now.to_s + " #{mnum}"
-      @client.publish(destination, message_text)
+      @client.publish(dest, message_text)
     end
     #
     max_sleep=5
@@ -262,10 +266,12 @@ class TestClient < Test::Unit::TestCase
 
   private
     def message_text
+      name = caller_method_name unless name
       "test_client#" + name
     end
 
     def destination
+      name = caller_method_name unless name
       "/queue/test/ruby/client/" + name
     end
 end
