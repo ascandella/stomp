@@ -64,6 +64,47 @@ class TestMessageKcode < Test::Unit::TestCase
 		end
   end
 
+	#
+	def test_kcode_004
+		#
+		assert_raise(Stomp::Error::InvalidFormat) {
+			aframe = Stomp::Message.new("junk")
+		}
+		#
+		assert_raise(Stomp::Error::InvalidFormat) {
+			aframe = Stomp::Message.new("command\njunk")
+		}
+		#
+		assert_raise(Stomp::Error::InvalidFormat) {
+			aframe = Stomp::Message.new("command\nheaders\n\njunk")
+		}
+		#
+		assert_raise(Stomp::Error::InvalidFormat) {
+			aframe = Stomp::Message.new("junkcommand\nheaders\n\njunk\0\n\n")
+		}
+		#
+		assert_raise(Stomp::Error::InvalidFormat) {
+			aframe = Stomp::Message.new("ERROR\nbadheaders\n\njunk\0\n\n")
+		}
+		#
+		assert_nothing_raised {
+			aframe = Stomp::Message.new("CONNECTED\nh1:val1\n\njunk\0\n")
+		}
+		#
+		assert_nothing_raised {
+			aframe = Stomp::Message.new("MESSAGE\nh1:val1\n\njunk\0\n")
+		}
+		#
+		assert_nothing_raised {
+			aframe = Stomp::Message.new("RECEIPT\nh1:val1\n\njunk\0\n")
+		}
+		#
+		assert_nothing_raised {
+			aframe = Stomp::Message.new("ERROR\nh1:val1\n\njunk\0\n")
+		}
+
+	end
+
   private
     def make_destination
       name = caller_method_name unless name
