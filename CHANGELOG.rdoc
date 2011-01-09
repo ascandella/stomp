@@ -1,3 +1,8 @@
+== 1.1.7 2010-09-01
+
+* Binary parse of raw STOMP frame
+* Fix broken tests on Ruby 1.9.2
+
 == 1.1.6 2010-10-06
 
 * Fixed multi-thread app hanging
