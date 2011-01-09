@@ -26,18 +26,18 @@ module Stomp
 
 			# Extract working copies of each frame part
 			work_command = frame[0..command_index-1]
-			raise Stomp::Error::InvalidFormat, 'invalid command' unless @@allowed_commands.include?(work_command)
+			raise Stomp::Error::InvalidFormat, 'nil command' unless @@allowed_commands.include?(work_command)
 			#
 			work_headers = frame[command_index+1..headers_index-1]
-			raise Stomp::Error::InvalidFormat, 'lastnull index' unless work_headers
+			raise Stomp::Error::InvalidFormat, 'nil headers' unless work_headers
 			#
 			work_body = frame[headers_index+2..lastnull_index-1]
-			raise Stomp::Error::InvalidFormat, 'lastnull index' unless work_body
+			raise Stomp::Error::InvalidFormat, 'nil body' unless work_body
       # Set the frame values
       self.command = work_command
       work_headers.split("\n").map do |value|
         parsed_value = value.match /^([\w|-]*):(.*)$/
-				raise Stomp::Error::InvalidFormat, 'bad header' unless parsed_value
+				raise Stomp::Error::InvalidFormat, 'parsed header value' unless parsed_value
         self.headers[parsed_value[1].strip] = parsed_value[2].strip if parsed_value
       end
 
