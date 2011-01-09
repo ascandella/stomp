@@ -4,32 +4,39 @@ module Stomp
   class Message
     attr_accessor :command, :headers, :body, :original
 
-    def initialize(message)
+    def initialize(frame)
       # Set default empty values
       self.command = ''
       self.headers = {}
       self.body = ''
-      self.original = message
-      return self if is_blank?(message)
+      self.original = frame
+      return self if is_blank?(frame)
 
-      # Parse the format of the received stomp message
-      parse = message.match /^(CONNECTED|MESSAGE|RECEIPT|ERROR)\n(.*?)\n\n(.*)\0\n?$/m
-      raise Stomp::Error::InvalidFormat if parse.nil?
+			# Figure out where individual parts of the frame begin and end.
+			command_index = frame.index("\n")
+			headers_index = frame.index("\n\n", command_index+1)
+			lastnull_index = frame.rindex("\0")
 
-      # Set the message values
-      self.command = parse[1]
-      self.headers = {}
-      parse[2].split("\n").map do |value|
+			# Extract working copies of each frame part
+			work_command = frame[0..command_index-1]
+			work_headers = frame[command_index+1..headers_index-1]
+			work_body = frame[headers_index+2..lastnull_index-1]
+
+      # Set the frame values
+      self.command = work_command
+      work_headers.split("\n").map do |value|
         parsed_value = value.match /^([\w|-]*):(.*)$/
         self.headers[parsed_value[1].strip] = parsed_value[2].strip if parsed_value
       end
 
       body_length = -1
+		
+			# p self.headers
       if self.headers['content-length']
         body_length = self.headers['content-length'].to_i
-        raise Stomp::Error::InvalidMessageLength if parse[3].length != body_length
+        raise Stomp::Error::InvalidMessageLength if work_body.length != body_length
       end
-      self.body = parse[3][0..body_length]
+      self.body = work_body[0..body_length]
     end
 
     def to_s
@@ -47,3 +54,4 @@ module Stomp
   end
 
 end
+
