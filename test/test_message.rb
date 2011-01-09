@@ -26,9 +26,10 @@ class TestMessageKcode < Test::Unit::TestCase
 	# Various message bodies, including the failing test case reported
   def test_kcode_001
 		#
-    @conn.subscribe make_destination
+		dest = make_destination
+    @conn.subscribe dest
 		@messages.each do |abody|
-		  @conn.publish make_destination, abody
+		  @conn.publish dest, abody
 			msg = @conn.receive
 			assert_instance_of Stomp::Message , msg, "type check for #{abody}"
 			assert_equal abody, msg.body, "equal check for #{abody}"
@@ -41,8 +42,9 @@ class TestMessageKcode < Test::Unit::TestCase
 		abody = ""
 		"\000".upto("\377") {|abyte| abody << abyte } 
 		#
-    @conn.subscribe make_destination
-	  @conn.publish make_destination, abody
+		dest = make_destination
+    @conn.subscribe dest
+	  @conn.publish dest, abody
 		msg = @conn.receive
 		assert_instance_of Stomp::Message , msg, "type check for #{abody}"
 		assert_equal abody, msg.body, "equal check for #{abody}"
@@ -51,10 +53,11 @@ class TestMessageKcode < Test::Unit::TestCase
 	# A single byte at a time
   def test_kcode_003
 		#
-    @conn.subscribe make_destination
+		dest = make_destination
+    @conn.subscribe dest
 		#
 		"\000".upto("\377") do |abody|
-			@conn.publish make_destination, abody
+			@conn.publish dest, abody
 			msg = @conn.receive
 			assert_instance_of Stomp::Message , msg, "type check for #{abody}"
 			assert_equal abody, msg.body, "equal check for #{abody}"
@@ -63,6 +66,7 @@ class TestMessageKcode < Test::Unit::TestCase
 
   private
     def make_destination
+      name = caller_method_name unless name
       "/queue/test/rubyk01/stomp/" + name
     end
 end
