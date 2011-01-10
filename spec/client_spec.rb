@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'client_shared_examples'
 
+
 describe Stomp::Client do
 
   before(:each) do
