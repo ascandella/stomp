@@ -104,8 +104,8 @@ module Stomp
 
     # Join the listener thread for this client,
     # generally used to wait for a quit signal
-    def join
-      @listener_thread.join
+    def join(limit = nil)
+      @listener_thread.join(limit)
     end
 
     # Begin a transaction by name
