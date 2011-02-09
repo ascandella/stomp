@@ -114,6 +114,24 @@ describe Stomp::Client do
 
   end
 
+  describe "(created with non-authenticating stomp:// URL and a host with a '-')" do
+
+    before(:each) do
+      @client = Stomp::Client.new('stomp://foo-bar:12345')
+    end
+
+    it "should properly parse the URL provided" do
+      @client.login.should eql('')
+      @client.passcode.should eql('')
+      @client.host.should eql('foo-bar')
+      @client.port.should eql(12345)
+      @client.reliable.should be_false
+    end
+
+    it_should_behave_like "standard Client"
+
+  end
+  
   describe "(created with authenticating stomp:// URL and non-TLD host)" do
 
     before(:each) do
@@ -124,6 +142,24 @@ describe Stomp::Client do
       @client.login.should eql('testlogin')
       @client.passcode.should eql('testpasscode')
       @client.host.should eql('foobar')
+      @client.port.should eql(12345)
+      @client.reliable.should be_false
+    end
+
+    it_should_behave_like "standard Client"
+
+  end
+
+  describe "(created with authenticating stomp:// URL and a host with a '-')" do
+
+    before(:each) do
+      @client = Stomp::Client.new('stomp://testlogin:testpasscode@foo-bar:12345')
+    end
+
+    it "should properly parse the URL provided" do
+      @client.login.should eql('testlogin')
+      @client.passcode.should eql('testpasscode')
+      @client.host.should eql('foo-bar')
       @client.port.should eql(12345)
       @client.reliable.should be_false
     end

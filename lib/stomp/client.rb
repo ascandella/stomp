@@ -47,7 +47,7 @@ module Stomp
         
         @reliable = true
         
-      elsif login =~ /^stomp:\/\/(([\w\.]+):(\w+)@)?([\w\.]+):(\d+)/ # e.g. stomp://login:passcode@host:port or stomp://host:port
+      elsif login =~ /^stomp:\/\/(([\w\.]+):(\w+)@)?([\w\.\-]+):(\d+)/ # e.g. stomp://login:passcode@host:port or stomp://host:port
         @login = $2 || ""
         @passcode = $3 || ""
         @host = $4
