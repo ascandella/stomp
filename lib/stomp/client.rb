@@ -47,13 +47,13 @@ module Stomp
         
         @reliable = true
         
-      elsif login =~ /^stomp:\/\/(([\w\.]+):(\w+)@)?([\w\.\-]+):(\d+)/ # e.g. stomp://login:passcode@host:port or stomp://host:port
+      elsif login =~ /^stomp:\/\/#{url_regex}/ # e.g. stomp://login:passcode@host:port or stomp://host:port
         @login = $2 || ""
         @passcode = $3 || ""
         @host = $4
         @port = $5.to_i
         @reliable = false
-      elsif login =~ /^failover:(\/\/)?\(stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)(,stomp(\+ssl)?:\/\/(([\w\.]*):(\w*)@)?([\w\.]+):(\d+)\))+(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)?option1=param
+      elsif login =~ /^failover:(\/\/)?\(stomp(\+ssl)?:\/\/#{url_regex}(,stomp(\+ssl)?:\/\/#{url_regex}\))+(\?(.*))?$/ # e.g. failover://(stomp://login1:passcode1@localhost:61616,stomp://login2:passcode2@remotehost:61617)?option1=param
 
         first_host = {}
         first_host[:ssl] = !$2.nil?
@@ -239,6 +239,11 @@ module Stomp
         end
         @receipt_listeners[id] = listener
         id
+      end
+      
+       # e.g. login:passcode@host:port or host:port
+      def url_regex
+        '(([\w\.\-]*):(\w*)@)?([\w\.\-]+):(\d+)'
       end
       
       def parse_hosts(url)

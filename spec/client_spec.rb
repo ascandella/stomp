@@ -135,11 +135,11 @@ describe Stomp::Client do
   describe "(created with authenticating stomp:// URL and non-TLD host)" do
 
     before(:each) do
-      @client = Stomp::Client.new('stomp://testlogin:testpasscode@foobar:12345')
+      @client = Stomp::Client.new('stomp://test-login:testpasscode@foobar:12345')
     end
 
     it "should properly parse the URL provided" do
-      @client.login.should eql('testlogin')
+      @client.login.should eql('test-login')
       @client.passcode.should eql('testpasscode')
       @client.host.should eql('foobar')
       @client.port.should eql(12345)
@@ -153,11 +153,11 @@ describe Stomp::Client do
   describe "(created with authenticating stomp:// URL and a host with a '-')" do
 
     before(:each) do
-      @client = Stomp::Client.new('stomp://testlogin:testpasscode@foo-bar:12345')
+      @client = Stomp::Client.new('stomp://test-login:testpasscode@foo-bar:12345')
     end
 
     it "should properly parse the URL provided" do
-      @client.login.should eql('testlogin')
+      @client.login.should eql('test-login')
       @client.passcode.should eql('testpasscode')
       @client.host.should eql('foo-bar')
       @client.port.should eql(12345)
