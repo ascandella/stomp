@@ -39,7 +39,8 @@ module Stomp
     #     :max_reconnect_attempts => 0,
     #     :randomize => false,
     #     :backup => false,
-    #     :timeout => -1
+    #     :timeout => -1,
+    #     :parse_timeout => 5,
     #   }
     #
     #   e.g. c = Connection.new(hash)
@@ -68,6 +69,7 @@ module Stomp
         @connect_headers = connect_headers
         @ssl = false
         @parameters = nil
+        @parse_timeout = 5		# To override, use hashed parameters
       end
       
       # Use Mutexes:  only one lock per each thread
@@ -89,7 +91,7 @@ module Stomp
       @reliable = true
       @reconnect_delay = @parameters[:initial_reconnect_delay]
       @connect_headers = @parameters[:connect_headers]
-      
+      @parse_timeout =  @parameters[:parse_timeout]
       #sets the first host to connect
       change_host
     end
@@ -148,7 +150,9 @@ module Stomp
         :max_reconnect_attempts => 0,
         :randomize => false,
         :backup => false,
-        :timeout => -1
+        :timeout => -1,
+        # Parse Timeout
+        :parse_timeout => 5
       }
       
       default_params.merge(params)
@@ -348,8 +352,9 @@ module Stomp
           line = read_socket.gets
           return nil if line.nil?
 
-          # If the reading hangs for more than 5 seconds, abort the parsing process
-          Timeout::timeout(5, Stomp::Error::PacketParsingTimeout) do
+          # If the reading hangs for more than X seconds, abort the parsing process.
+          # X defaults to 5.  Override allowed in connection hash parameters.
+          Timeout::timeout(@parse_timeout, Stomp::Error::PacketParsingTimeout) do
             # Reads the beginning of the message until it runs into a empty line
             message_header = ''
             begin
