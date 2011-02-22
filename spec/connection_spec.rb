@@ -16,6 +16,7 @@ describe Stomp::Connection do
       :randomize => false,
       :backup => false,
       :timeout => -1,
+      :parse_timeout => 5,
       :connect_headers => {}
     }
         
@@ -47,7 +48,8 @@ describe Stomp::Connection do
         "maxReconnectAttempts" => 0,
         "randomize" => false,
         "backup" => false,
-        "timeout" => -1
+        "timeout" => -1,
+        "parse_timeout" => 5,
       }
       
       @connection = Stomp::Connection.new(used_hash)
@@ -260,6 +262,7 @@ describe Stomp::Connection do
           :randomize => false,
           :backup => false,
           :timeout => -1,
+          :parse_timeout => 5,
           :connect_headers => {}
         }
         
@@ -288,6 +291,7 @@ describe Stomp::Connection do
           :randomize => true,
           :backup => false,
           :timeout => -1,
+          :parse_timeout => 20,
           :connect_headers => {:lerolero => "ronaldo"},
           :dead_letter_queue => "queue/Error",
           :max_redeliveries => 10
