@@ -40,6 +40,7 @@ module Stomp
     #     :randomize => false,
     #     :backup => false,
     #     :timeout => -1,
+    #     :connect_headers => {},
     #     :parse_timeout => 5,
     #   }
     #
