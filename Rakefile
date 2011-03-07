@@ -31,9 +31,11 @@ begin
     gem.version = Stomp::Version::STRING
     gem.summary = %Q{Ruby client for the Stomp messaging protocol}
     gem.description = %Q{Ruby client for the Stomp messaging protocol}
-    gem.email = ["brianm@apache.org", 'marius@stones.com', 'morellon@gmail.com']
-    gem.homepage = "http://stomp.codehaus.org/"
-    gem.authors = ["Brian McCallister", 'Marius Mathiesen', 'Thiago Morello']
+    gem.email = ["brianm@apache.org", 'marius@stones.com', 'morellon@gmail.com',
+       'allard.guy.m@gmail.com' ]
+    gem.homepage = "https://rubygems.org/gems/stomp"
+    gem.authors = ["Brian McCallister", 'Marius Mathiesen', 'Thiago Morello',
+        'Guy M. Allard']
     gem.add_development_dependency "rspec", '>= 2.3'
   end
   Jeweler::GemcutterTasks.new
