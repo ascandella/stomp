@@ -1,10 +1,15 @@
 ==README
 
-http://stomp.rubyforge.org/
+* (http://gitorious.org/projects/stomp/)
+* (https://github.com/morellon/stomp/)
+* (http://stomp.rubyforge.org/)
 
 ===Overview
 
-An implementation of the Stomp protocol (http://stomp.codehaus.org/Protocol) for Ruby.
+An implementation of the Stomp protocol for Ruby. See:
+
+* [STOMP 1.0] (http://stomp.codehaus.org/Protocol)
+* [STOMP 1.0 and 1.1 Draft] (http://stomp.github.com/index.html)
 
 
 ===Example Usage
@@ -27,7 +32,7 @@ An implementation of the Stomp protocol (http://stomp.codehaus.org/Protocol) for
       p msg
     end
 
-===Hash Example Usage
+===Hash Login Example Usage
 
   hash = {
       :hosts => [
@@ -44,7 +49,8 @@ An implementation of the Stomp protocol (http://stomp.codehaus.org/Protocol) for
       :randomize => false,
       :backup => false,
       :timeout => -1,
-      :connect_headers => {}
+      :connect_headers => {},
+      :parse_timeout => 5,
     }
     
     # for client
@@ -58,20 +64,24 @@ An implementation of the Stomp protocol (http://stomp.codehaus.org/Protocol) for
 
 Up until March 2009 the project was maintained and primarily developed by Brian McCallister. 
 
-The project is now maintained by Johan Sørensen <johan@johansorensen.com>
+The project is now maintained by Johan Sørensen <johan@johansorensen.com> and others.
 
 ===Source Code
 
+  https://github.com/morellon/stomp/
   http://gitorious.org/projects/stomp/
   http://github.com/js/stomp/
 
 ===Project urls
 
 Project Home :
+
   http://gitorious.org/projects/stomp/
   http://rubyforge.org/projects/stomp/
 
 Stomp Protocol Info :
+
+  http://stomp.github.com/index.html
   http://stomp.codehaus.org/Protocol
 
 = Contributors
