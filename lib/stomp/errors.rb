@@ -6,6 +6,12 @@ module Stomp
       end
     end
 
+    class InvalidServerCommand < RuntimeError
+      def message
+        "Invalid command from server"
+      end
+    end
+
     class InvalidMessageLength < RuntimeError
       def message
         "Invalid content length received"

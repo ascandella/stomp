@@ -26,7 +26,7 @@ module Stomp
 
 			# Extract working copies of each frame part
 			work_command = frame[0..command_index-1]
-			raise Stomp::Error::InvalidFormat, 'nil command' unless @@allowed_commands.include?(work_command)
+			raise Stomp::Error::InvalidServerCommand, "invalid command: #{work_command.inspect}" unless @@allowed_commands.include?(work_command)
 			#
 			work_headers = frame[command_index+1..headers_index-1]
 			raise Stomp::Error::InvalidFormat, 'nil headers' unless work_headers

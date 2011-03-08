@@ -79,7 +79,7 @@ class TestMessageKcode < Test::Unit::TestCase
 			aframe = Stomp::Message.new("command\nheaders\n\njunk")
 		}
 		#
-		assert_raise(Stomp::Error::InvalidFormat) {
+		assert_raise(Stomp::Error::InvalidServerCommand) {
 			aframe = Stomp::Message.new("junkcommand\nheaders\n\njunk\0\n\n")
 		}
 		#
@@ -93,6 +93,10 @@ class TestMessageKcode < Test::Unit::TestCase
 		#
 		assert_nothing_raised {
 			aframe = Stomp::Message.new("MESSAGE\nh1:val1\n\njunk\0\n")
+		}
+		#
+		assert_nothing_raised {
+			aframe = Stomp::Message.new("MESSAGE\nh2:val2\n\n\0")
 		}
 		#
 		assert_nothing_raised {
