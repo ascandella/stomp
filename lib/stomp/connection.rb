@@ -351,6 +351,7 @@ module Stomp
       def _receive( read_socket )
         @read_semaphore.synchronize do
           line = read_socket.gets
+
           return nil if line.nil?
 
           # If the reading hangs for more than X seconds, abort the parsing process.
@@ -374,14 +375,17 @@ module Stomp
               raise Stomp::Error::InvalidMessageLength unless parse_char(read_socket.getc) == "\0"
             # Else reads, the rest of the message until the first \0
             else
-              message_body += char while read_socket.ready? && (char = parse_char(read_socket.getc)) != "\0"
+              message_body += char while (char = parse_char(read_socket.getc)) != "\0"
             end
 
-            # If the buffer isn't empty, reads the next char and returns it to the buffer
-            # unless it's a \n
-            if read_socket.ready?
+            # If the buffer isn't empty, reads trailing new lines.
+            while read_socket.ready?
               last_char = read_socket.getc
-              read_socket.ungetc(last_char) if parse_char(last_char) != "\n"
+              break unless last_char
+              if parse_char(last_char) != "\n"
+                read_socket.ungetc(last_char)
+                break
+              end
             end
 
             # Adds the excluded \n and \0 and tries to create a new message with it
