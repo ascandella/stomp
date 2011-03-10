@@ -20,6 +20,20 @@ class TestStomp < Test::Unit::TestCase
     assert_not_nil @conn
   end
 
+  def test_no_length
+    @conn.subscribe make_destination
+    #
+    @conn.publish make_destination, "test_stomp#test_no_length",
+      { :suppress_content_length => true }
+    msg = @conn.receive
+    assert_equal "test_stomp#test_no_length", msg.body
+    #
+    @conn.publish make_destination, "test_stomp#test_\000_length",
+      { :suppress_content_length => true }
+    msg2 = @conn.receive
+    assert_equal "test_stomp#test_", msg2.body
+  end
+
   def test_explicit_receive
     @conn.subscribe make_destination
     @conn.publish make_destination, "test_stomp#test_explicit_receive"
