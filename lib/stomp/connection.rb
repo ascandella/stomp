@@ -1,5 +1,6 @@
 require 'socket'
 require 'timeout'
+require 'io/wait'
 
 module Stomp
 
@@ -434,10 +435,6 @@ module Stomp
       
       def open_tcp_socket
         tcp_socket = TCPSocket.open @host, @port
-        def tcp_socket.ready?
-          r,w,e = IO.select([self],nil,nil,0)
-          ! r.nil?
-        end
 
         tcp_socket
       end
