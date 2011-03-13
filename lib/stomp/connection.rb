@@ -380,6 +380,9 @@ module Stomp
             end
 
             # If the buffer isn't empty, reads trailing new lines.
+            # Note: experiments with JRuby seem to show that .ready? never
+            # returns true.  This means that this code to drain trailing new
+            # lines never runs using JRuby.
             while read_socket.ready?
               last_char = read_socket.getc
               break unless last_char
@@ -388,6 +391,9 @@ module Stomp
                 break
               end
             end
+            # And so, a JRuby hack.  Remove any new lines at the start of the 
+            # next buffer.
+            message_header.gsub!(/^\n?/, "")
 
             # Adds the excluded \n and \0 and tries to create a new message with it
             Message.new(message_header + "\n" + message_body + "\0")
