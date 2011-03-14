@@ -45,7 +45,7 @@ end
 
 desc 'Run the specs'
 RSpec::Core::RakeTask.new(:spec) do |t|
-  t.spec_opts = ['--colour']
+  t.rspec_opts = ['--colour']
   t.pattern = 'spec/**/*_spec.rb'
 end
 
