@@ -486,7 +486,8 @@ module Stomp
         close_socket
         
         @closed = false
-        
+        # Use keepalive
+        used_socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
         used_socket
       end
       
