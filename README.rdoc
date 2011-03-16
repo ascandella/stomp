@@ -86,7 +86,7 @@ Stomp Protocol Info :
 
 = Contributors
 
-The following people have contributed to Stomp (ordered by commits):
+The following people have contributed to Stomp:
 
 * Brian McCaliister
 * Glenn Rempe <glenn@rempe.us>
@@ -99,3 +99,6 @@ The following people have contributed to Stomp (ordered by commits):
 * Tony Garnock-Jones <tonyg@lshift.net>
 * chirino
 * Stefan Saasen
+* Neil Wilson
+* Dinesh Majrekar
+

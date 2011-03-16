@@ -1,3 +1,14 @@
+== 1.1.8 2010-16-05
+
+* Set KEEPALIVE on connection socket options
+* Attempt to support JRuby more robustly (poll remains broken)
+* Switch to ruby supplied IO#ready?
+* Test enhancements for suppress_content_length header
+* Miscellaneous small documentation updates
+* Add parse_timeout parameter for use with hashed logins 
+* Allow connection to hosts with a - (dash) in the host name
+* Add limit parameter to thread joins
+
 == 1.1.7 2010-09-01
 
 * Binary parse of raw STOMP frame
