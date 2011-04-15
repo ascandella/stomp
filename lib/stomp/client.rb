@@ -1,4 +1,5 @@
 require 'thread'
+require 'digest/sha1'
 
 module Stomp
 
@@ -121,7 +122,7 @@ module Stomp
       replay_list = @replay_messages_by_txn[name]
       if replay_list
         replay_list.each do |message|
-          if listener = @listeners[message.headers['destination']]
+          if listener = find_listener(message)
             listener.call(message)
           end
         end
@@ -141,14 +142,22 @@ module Stomp
     # Accepts a transaction header ( :transaction => 'some_transaction_id' )
     def subscribe(destination, headers = {})
       raise "No listener given" unless block_given?
-      @listeners[destination] = lambda {|msg| yield msg}
+      # use subscription id to correlate messages to subscription. As described in
+      # the SUBSCRIPTION section of the protocol: http://stomp.codehaus.org/Protocol.
+      # If no subscription id is provided, generate one.
+      set_subscription_id_if_missing(destination, headers)
+      if @listeners[headers[:id]]
+        raise "attempting to subscribe to a queue with a previous subscription"
+      end
+      @listeners[headers[:id]] = lambda {|msg| yield msg}
       @connection.subscribe(destination, headers)
     end
 
     # Unsubecribe from a channel
     def unsubscribe(name, headers = {})
+      set_subscription_id_if_missing(name, headers)
       @connection.unsubscribe(name, headers)
-      @listeners[name] = nil
+      @listeners[headers[:id]] = nil
     end
 
     # Acknowledge a message, used when a subscription has specified
@@ -230,6 +239,15 @@ module Stomp
     end
 
     private
+      # Set a subscription id in the headers hash if one does not already exist.
+      # For simplicities sake, all subscriptions have a subscription ID.
+      # setting an id in the SUBSCRIPTION header is described in the stomp protocol docs:
+      # http://stomp.codehaus.org/Protocol
+      def set_subscription_id_if_missing(destination, headers)
+        if headers[:id] == nil
+          headers[:id] = Digest::SHA1.hexdigest(destination)
+        end
+      end
 
       def register_receipt_listener(listener)
         id = -1
@@ -284,6 +302,17 @@ module Stomp
         new_options
       end
       
+      def find_listener(message)
+        subscription_id = message.headers['subscription']
+        if subscription_id == nil
+          # For backward compatibility, some messages may already exist with no
+          # subscription id, in which case we can attempt to synthesize one.
+          set_subscription_id_if_missing(message.headers['destination'], message.headers)
+          subscription_id = message.headers['id']
+        end
+        @listeners[subscription_id]
+      end
+
       def start_listeners
         @listeners = {}
         @receipt_listeners = {}
@@ -293,7 +322,7 @@ module Stomp
           while true
             message = @connection.receive
             if message.command == 'MESSAGE'
-              if listener = @listeners[message.headers['destination']]
+              if listener = find_listener(message)
                 listener.call(message)
               end
             elsif message.command == 'RECEIPT'
