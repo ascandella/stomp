@@ -151,6 +151,73 @@ class TestClient < Test::Unit::TestCase
     @client.commit 'tx2'
   end
 
+  def test_raise_on_multiple_subscriptions_to_same_destination
+    @client.subscribe(destination) {|m| nil }
+    assert_raise(RuntimeError) do
+      @client.subscribe(destination) {|m| nil }
+    end
+  end
+
+  def test_greater_than_wildcard_subscribe
+    queue_base_name = "/queue/test/ruby/client/queue.#{name}."
+    queue1 = queue_base_name + "a"
+    queue2 = queue_base_name + "b"
+    @client.publish queue1, message_text
+    @client.publish queue2, message_text
+    messages = []
+    @client.subscribe(queue_base_name + "*", :ack => 'client') do |m|
+      messages << m
+      @client.acknowledge(m)
+    end
+    Timeout::timeout(4) do
+      sleep 0.1 while messages.size < 2
+    end
+
+    messages.each do |message|
+      assert_not_nil message
+      assert_equal message_text, message.body
+    end
+    results = [queue1, queue2].collect do |queue|
+      messages.any? do |message| 
+        message_source = message.headers['destination']
+        message_source == queue
+      end
+    end
+    assert results.all?{|a| a == true }
+  end
+
+  def  test_asterisk_wildcard_subscribe
+    queue_base_name = "/queue/test/ruby/client/queue.#{name}."
+    queue1 = queue_base_name + "foo.a"
+    queue2 = queue_base_name + "bar.a"
+    queue3 = queue_base_name + "foo.b"
+    @client.publish queue1, message_text
+    @client.publish queue2, message_text
+    @client.publish queue3, message_text
+    messages = []
+    # should subscribe to all three queues
+    @client.subscribe(queue_base_name + ">", :ack => 'client') do |m|
+      messages << m
+      @client.acknowledge(m)
+    end
+    Timeout::timeout(4) do
+      sleep 0.1 while messages.size < 3
+    end
+
+    messages.each do |message|
+      assert_not_nil message
+      assert_equal message_text, message.body
+    end
+    # make sure that the messages received came from the expected queues
+    results = [queue1, queue2, queue3].collect do |queue|
+      messages.any? do |message| 
+        message_source = message.headers['destination']
+        message_source == queue
+      end
+    end
+    assert results.all?{|a| a == true }
+  end
+
   def test_transaction_with_client_side_redelivery
     @client.publish destination, message_text
 
