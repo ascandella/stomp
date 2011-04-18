@@ -142,19 +142,20 @@ class TestStomp < Test::Unit::TestCase
 
   def test_thread_poll_one
     received = nil
+    max_sleep = (RUBY_VERSION =~ /1\.8\.6/) ? 5 : 1
     Thread.new(@conn) do |amq|
         while true
           received = amq.poll
           # One message is needed
           Thread.exit if received
-          sleep 0.1
+          sleep max_sleep
         end
     end
     #
     @conn.subscribe( make_destination )
     message = Time.now.to_s
     @conn.publish(make_destination, message)
-    sleep 1
+    sleep max_sleep+1
     assert_not_nil received
     assert_equal message, received.body
   end
@@ -183,7 +184,7 @@ class TestStomp < Test::Unit::TestCase
       @conn.publish(dest, msg)
     end
     #
-    max_sleep=5
+    max_sleep = (RUBY_VERSION =~ /1\.8\.6/) ? 30 : 5
     sleep_incr = 0.10
     total_slept = 0
     while true
@@ -225,7 +226,7 @@ class TestStomp < Test::Unit::TestCase
       @conn.publish(dest, msg)
     end
     #
-    max_sleep=5
+    max_sleep = (RUBY_VERSION =~ /1\.8\.6/) ? 30 : 5
     sleep_incr = 0.10
     total_slept = 0
     while true
