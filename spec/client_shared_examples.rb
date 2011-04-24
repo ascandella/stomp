@@ -49,6 +49,20 @@ shared_examples_for "standard Client" do
       }.should_not raise_error
     end
 
+    it "should raise RuntimeError on duplicate subscriptions" do
+      lambda {
+        @client.subscribe(@destination)
+        @client.subscribe(@destination)
+      }.should raise_error
+    end
+
+    it "should raise RuntimeError with duplicate id headers" do
+      lambda {
+        @client.subscribe(@destination, {'id' => 'abcdef'})
+        @client.subscribe(@destination, {'id' => 'abcdef'})
+      }.should raise_error
+    end
+
   end
 
 end
