@@ -244,6 +244,7 @@ module Stomp
       # setting an id in the SUBSCRIPTION header is described in the stomp protocol docs:
       # http://stomp.codehaus.org/Protocol
       def set_subscription_id_if_missing(destination, headers)
+        headers[:id] = headers[:id] ? headers[:id] : headers['id'] 
         if headers[:id] == nil
           headers[:id] = Digest::SHA1.hexdigest(destination)
         end

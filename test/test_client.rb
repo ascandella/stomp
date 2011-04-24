@@ -159,6 +159,22 @@ class TestClient < Test::Unit::TestCase
     end
   end
 
+  def test_raise_on_multiple_subscriptions_to_same_id
+    subscribe_dest = destination
+    @client.subscribe(subscribe_dest, {'id' => 'myid'}) {|m| nil }
+    assert_raise(RuntimeError) do
+      @client.subscribe(subscribe_dest, {'id' => 'myid'}) {|m| nil }
+    end
+  end
+
+  def test_raise_on_multiple_subscriptions_to_same_id_mixed
+    subscribe_dest = destination
+    @client.subscribe(subscribe_dest, {'id' => 'myid'}) {|m| nil }
+    assert_raise(RuntimeError) do
+      @client.subscribe(subscribe_dest, {:id => 'myid'}) {|m| nil }
+    end
+  end
+
   def  test_asterisk_wildcard_subscribe
     queue_base_name = "/queue/test/ruby/client/queue."
     queue1 = queue_base_name + "a"
