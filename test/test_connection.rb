@@ -241,7 +241,7 @@ class TestStomp < Test::Unit::TestCase
   private
     def make_destination
       name = caller_method_name unless name
-      "/queue/test/ruby/stomp/" + name
+      qname = ENV['STOMP_APOLLO'] ? "/queue/test.ruby.stomp." + name : "/queue/test/ruby/stomp/" + name
     end
 
     def _test_transaction

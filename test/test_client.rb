@@ -176,14 +176,14 @@ class TestClient < Test::Unit::TestCase
   end
 
   def  test_asterisk_wildcard_subscribe
-    queue_base_name = "/queue/test/ruby/client/queue."
-    queue1 = queue_base_name + "a"
-    queue2 = queue_base_name + "b"
+    queue_base_name = destination
+    queue1 = queue_base_name + ".a"
+    queue2 = queue_base_name + ".b"
     send_message = message_text
     @client.publish queue1, send_message
     @client.publish queue2, send_message
     messages = []
-    @client.subscribe(queue_base_name + "*", :ack => 'client') do |m|
+    @client.subscribe(queue_base_name + ".*", :ack => 'client') do |m|
       messages << m
       @client.acknowledge(m)
     end
@@ -202,10 +202,11 @@ class TestClient < Test::Unit::TestCase
       end
     end
     assert results.all?{|a| a == true }
-  end
+
+  end unless ENV['STOMP_NOWILD']
 
   def test_greater_than_wildcard_subscribe
-    queue_base_name = "/queue/test/ruby/client/queue."
+    queue_base_name = destination + "."
     queue1 = queue_base_name + "foo.a"
     queue2 = queue_base_name + "bar.a"
     queue3 = queue_base_name + "foo.b"
@@ -235,7 +236,7 @@ class TestClient < Test::Unit::TestCase
       end
     end
     assert results.all?{|a| a == true }
-  end
+  end unless ENV['STOMP_NOWILD'] || ENV['STOMP_APOLLO']
 
   def test_transaction_with_client_side_redelivery
     @client.publish destination, message_text
@@ -358,6 +359,6 @@ class TestClient < Test::Unit::TestCase
 
     def destination
       name = caller_method_name unless name
-      "/queue/test/ruby/client/" + name
+      qname = ENV['STOMP_APOLLO'] ? "/queue/test.ruby.stomp." + name : "/queue/test/ruby/stomp/" + name
     end
 end
