@@ -422,6 +422,8 @@ module Stomp
 
       def _transmit(used_socket, command, headers = {}, body = '')
         @transmit_semaphore.synchronize do
+          # Handle nil body
+          body = '' if body.nil?
           # The content-length should be expressed in bytes.
           # Ruby 1.8: String#length => # of bytes; Ruby 1.9: String#length => # of characters
           # With Unicode strings, # of bytes != # of characters.  So, use String#bytesize when available.

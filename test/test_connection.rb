@@ -238,6 +238,16 @@ class TestStomp < Test::Unit::TestCase
     assert_equal @max_msgs, msg_ctr
   end
 
+  def test_nil_body
+    dest = make_destination
+    assert_nothing_raised {
+      @conn.publish dest, nil
+    }
+    @conn.subscribe dest
+    msg = @conn.receive
+    assert_equal "", msg.body    
+  end
+
   private
     def make_destination
       name = caller_method_name unless name

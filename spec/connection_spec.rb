@@ -186,6 +186,15 @@ describe Stomp::Connection do
     
     end
     
+    describe "when sending a nil message body" do
+      it "should should not raise an error" do
+        @connection = Stomp::Connection.new("niluser", "nilpass", "localhost", 61613)
+        lambda {
+          @connection.publish("/queue/nilq", nil)
+        }.should_not raise_error
+     end
+    end
+
     describe "when using ssl" do
 
       # Mocking ruby's openssl extension, so we can test without requiring openssl  
