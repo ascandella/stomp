@@ -412,6 +412,8 @@ module Stomp
             used_socket = socket
             _transmit(used_socket, command, headers, body)
             return
+          rescue Stomp::Error::MaxReconnectAttempts => e
+              raise
           rescue
             @failure = $!
             raise unless @reliable
