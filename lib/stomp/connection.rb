@@ -43,6 +43,7 @@ module Stomp
     #     :timeout => -1,
     #     :connect_headers => {},
     #     :parse_timeout => 5,
+    #     :logger => nil,
     #   }
     #
     #   e.g. c = Connection.new(hash)
@@ -72,6 +73,7 @@ module Stomp
         @ssl = false
         @parameters = nil
         @parse_timeout = 5		# To override, use hashed parameters
+        @logger = nil     		# To override, use hashed parameters
       end
       
       # Use Mutexes:  only one lock per each thread
@@ -94,6 +96,7 @@ module Stomp
       @reconnect_delay = @parameters[:initial_reconnect_delay]
       @connect_headers = @parameters[:connect_headers]
       @parse_timeout =  @parameters[:parse_timeout]
+      @logger =  @parameters[:logger]
       #sets the first host to connect
       change_host
     end
@@ -115,7 +118,7 @@ module Stomp
             # Open complete
             
             connect(used_socket)
-            
+            @logger.sl_connect(nil) if @logger && @logger.respond_to?(:sl_connect)            
             @connection_attempts = 0
           rescue
             @failure = $!
@@ -310,6 +313,7 @@ module Stomp
       transmit("DISCONNECT", headers)
       headers = headers.symbolize_keys
       @disconnect_receipt = receive if headers[:receipt]
+      @logger.sl_disconnect(nil) if @logger && @logger.respond_to?(:sl_disconnect)
       close_socket
     end
 
