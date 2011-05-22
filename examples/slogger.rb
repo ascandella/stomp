@@ -4,7 +4,9 @@ Example STOMP call back logger.
 
 Optional callback methods
 
-    sl_connect: successful connect
+    sl_connecting: connection starting
+    sl_connected: successful connect
+    sl_connectfail: unsuccessful connect (will usually be retried)
     sl_disconnect: successful disconnect
 
 Note:  call back logging methods *must* not raise exceptions, otherwise the
@@ -14,24 +16,48 @@ STOMP connection will fail.
 require 'logger'
 class Slogger
   #
-  def initialize(*parms)
+  def initialize(init_parms = nil)
     @log = Logger::new(STDOUT)
     @log.level = Logger::DEBUG
     # @log.debug("Logger initialization complete.")
   end
 
-  # Log connect events
-  def sl_connect(*parms)
+  # Log connecting events
+  def sl_connecting(parms)
     begin
-      @log.debug("Connected.")
+      # parms: A copy of the Connection's @parameters instance variable (a Hash)
+      curr_host = parms[:hosts][0]
+      @log.debug("Connecting.... " + curr_host[:host] + ":" + curr_host[:port].to_s)
+    rescue
+    end
+  end
+
+  # Log connected events
+  def sl_connected(parms)
+    begin
+      # parms: A copy of the Connection's @parameters instance variable (a Hash)
+      curr_host = parms[:hosts][0]
+      @log.debug("Connected.... " + curr_host[:host] + ":" + curr_host[:port].to_s)
+    rescue
+    end
+  end
+
+  # Log connectfail events
+  def sl_connectfail(parms)
+    begin
+      # parms: A copy of the Connection's @parameters instance variable (a Hash)
+      curr_host = parms[:hosts][0]
+      @log.debug("Connect Fail.... " + curr_host[:host] + ":" + curr_host[:port].to_s)
     rescue
     end
   end
 
   # Log disconnect events
-  def sl_disconnect(*parms)
+  def sl_disconnect(parms)
     begin
-      @log.debug("Disconnected.")
+      # parms: A copy of the Connection's @parameters instance variable (a Hash)
+      curr_host = parms[:hosts][0]
+      @log.debug("Disconnected.... " + curr_host[:host] + ":" + curr_host[:port].to_s)
     rescue
     end
   end
