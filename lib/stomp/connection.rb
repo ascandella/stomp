@@ -99,7 +99,7 @@ module Stomp
       @logger =  @parameters[:logger]
       #sets the first host to connect
       change_host
-      @logger.sl_connecting(@parameters.clone) if @logger && @logger.respond_to?(:sl_connecting)            
+      @logger.on_connecting(@parameters.clone) if @logger && @logger.respond_to?(:on_connecting)            
     end
     
     # Syntactic sugar for 'Connection.new' See 'initialize' for usage.
@@ -119,13 +119,13 @@ module Stomp
             # Open complete
             
             connect(used_socket)
-            @logger.sl_connected(@parameters.clone) if @logger && @logger.respond_to?(:sl_connected)            
+            @logger.on_connected(@parameters.clone) if @logger && @logger.respond_to?(:on_connected)            
             @connection_attempts = 0
           rescue
             @failure = $!
             used_socket = nil
             raise unless @reliable
-            @logger.sl_connectfail(@parameters.clone) if @logger && @logger.respond_to?(:sl_connectfail)            
+            @logger.on_connectfail(@parameters.clone) if @logger && @logger.respond_to?(:on_connectfail)            
             $stderr.print "connect to #{@host} failed: #{$!} will retry(##{@connection_attempts}) in #{@reconnect_delay}\n"
 
             raise Stomp::Error::MaxReconnectAttempts if max_reconnect_attempts?
@@ -315,7 +315,7 @@ module Stomp
       transmit("DISCONNECT", headers)
       headers = headers.symbolize_keys
       @disconnect_receipt = receive if headers[:receipt]
-      @logger.sl_disconnect(@parameters.clone) if @logger && @logger.respond_to?(:sl_disconnect)
+      @logger.on_disconnect(@parameters.clone) if @logger && @logger.respond_to?(:on_disconnect)
       close_socket
     end
 
