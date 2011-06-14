@@ -99,7 +99,9 @@ module Stomp
       @logger =  @parameters[:logger]
       #sets the first host to connect
       change_host
-      @logger.on_connecting(@parameters.clone) if @logger && @logger.respond_to?(:on_connecting)            
+      if @logger && @logger.respond_to?(:on_connecting)            
+        @logger.on_connecting(log_params)
+      end
     end
     
     # Syntactic sugar for 'Connection.new' See 'initialize' for usage.
@@ -119,15 +121,19 @@ module Stomp
             # Open complete
             
             connect(used_socket)
-            @logger.on_connected(@parameters.clone) if @logger && @logger.respond_to?(:on_connected)            
+            if @logger && @logger.respond_to?(:on_connected)
+              @logger.on_connected(log_params) 
+            end
             @connection_attempts = 0
           rescue
             @failure = $!
             used_socket = nil
             raise unless @reliable
-            @logger.on_connectfail(@parameters.clone) if @logger && @logger.respond_to?(:on_connectfail)            
-            $stderr.print "connect to #{@host} failed: #{$!} will retry(##{@connection_attempts}) in #{@reconnect_delay}\n"
-
+            if @logger && @logger.respond_to?(:on_connectfail)            
+              @logger.on_connectfail(log_params) 
+            else
+              $stderr.print "connect to #{@host} failed: #{$!} will retry(##{@connection_attempts}) in #{@reconnect_delay}\n"
+            end
             raise Stomp::Error::MaxReconnectAttempts if max_reconnect_attempts?
 
             sleep(@reconnect_delay)
@@ -315,7 +321,9 @@ module Stomp
       transmit("DISCONNECT", headers)
       headers = headers.symbolize_keys
       @disconnect_receipt = receive if headers[:receipt]
-      @logger.on_disconnect(@parameters.clone) if @logger && @logger.respond_to?(:on_disconnect)
+      if @logger && @logger.respond_to?(:on_disconnect)
+        @logger.on_disconnect(log_params)
+      end
       close_socket
     end
 
@@ -338,7 +346,12 @@ module Stomp
         rescue
           @failure = $!
           raise unless @reliable
-          $stderr.print "receive failed: #{$!}"
+          errstr = "receive failed: #{$!}"
+          if @logger && @logger.respond_to?(:on_miscerr)
+            @logger.on_miscerr(log_params, errstr)
+          else
+            $stderr.print errstr
+          end
         end
       end
     end
@@ -346,7 +359,12 @@ module Stomp
     def receive
       super_result = __old_receive
       if super_result.nil? && @reliable
-        $stderr.print "connection.receive returning EOF as nil - resetting connection.\n"
+        errstr = "connection.receive returning EOF as nil - resetting connection.\n"
+        if @logger && @logger.respond_to?(:on_miscerr)
+          @logger.on_miscerr(log_params, errstr)
+        else
+          $stderr.print errstr
+        end
         @socket = nil
         super_result = __old_receive
       end
@@ -423,7 +441,12 @@ module Stomp
           rescue
             @failure = $!
             raise unless @reliable
-            $stderr.print "transmit to #{@host} failed: #{$!}\n"
+            errstr = "transmit to #{@host} failed: #{$!}\n"
+            if @logger && @logger.respond_to?(:on_miscerr)
+              @logger.on_miscerr(log_params, errstr)
+            else
+              $stderr.print errstr
+            end
           end
         end
       end
@@ -517,6 +540,19 @@ module Stomp
         @subscriptions.each { |k,v| _transmit(used_socket, "SUBSCRIBE", v) }
       end
 
+      def log_params
+        lparms = @parameters.clone
+        lparms[:cur_host] = @host
+        lparms[:cur_port] = @port
+        lparms[:cur_login] = @login
+        lparms[:cur_passcode] = @passcode
+        lparms[:cur_ssl] = @ssl
+        lparms[:cur_recondelay] = @reconnect_delay
+        lparms[:cur_parseto] = @parse_timeout
+        lparms[:cur_conattempts] = @connection_attempts
+        #
+        lparms
+      end
   end
 
 end

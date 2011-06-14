@@ -10,7 +10,7 @@ require 'slogger'
 #
 llog =        Logger::new(STDOUT)
 llog.level =  Logger::DEBUG
-llog.debug "Starting"
+llog.debug "LE Starting"
 
 # //////////////////////////////////////////////////////////////////////////////
 mylog = Slogger::new  # The client provided STOMP callback logger
@@ -24,6 +24,7 @@ port =      ENV['STOMP_PORT'] ? ENV['STOMP_PORT'].to_i : 61613
 # A hash type connect *MUST* be used to enable callback logging.
 # //////////////////////////////////////////////////////////////////////////////
 hash = { :hosts => [ 
+          {:login => user, :passcode => password, :host => 'noonehome', :port => 2525},
           {:login => user, :passcode => password, :host => host, :port => port},
           ],
           :logger => mylog,	# This enables callback logging!
@@ -35,15 +36,15 @@ hash = { :hosts => [
 conn = Stomp::Connection.new(hash)
 conn.disconnect
 # //////////////////////////////////////////////////////////////////////////////
-llog.debug "Connection processing complete"
+llog.debug "LE Connection processing complete"
 
 # //////////////////////////////////////////////////////////////////////////////
 # For a Client:
 conn = Stomp::Client.new(hash)
 conn.close
 # //////////////////////////////////////////////////////////////////////////////
-llog.debug "Client processing complete"
+# llog.debug "LE Client processing complete"
 
 # //////////////////////////////////////////////////////////////////////////////
-llog.debug "Ending"
+llog.debug "LE Ending"
 
