@@ -1,4 +1,4 @@
-== 1.1.9 (RC) 2011-13-06
+== 1.1.9 2011-15-06
 
 * Support wildcard destinations
 * Handle subscribe with string or symbol ID

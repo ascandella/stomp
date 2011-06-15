@@ -21,7 +21,7 @@ require "stomp/version"
 begin
   require "hanna/rdoctask"
 rescue LoadError => e
-  require "rake/rdoctask"
+  require "rdoc/task"
 end
 
 begin

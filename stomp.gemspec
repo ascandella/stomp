@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = [%q{Brian McCallister}, %q{Marius Mathiesen}, %q{Thiago Morello}, %q{Guy M. Allard}]
-  s.date = %q{2011-06-14}
+  s.date = %q{2011-06-15}
   s.description = %q{Ruby client for the Stomp messaging protocol}
   s.email = [%q{brianm@apache.org}, %q{marius@stones.com}, %q{morellon@gmail.com}, %q{allard.guy.m@gmail.com}]
   s.executables = [%q{catstomp}, %q{stompcat}]
