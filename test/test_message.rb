@@ -109,10 +109,5 @@ class TestMessageKcode < Test::Unit::TestCase
 
 	end
 
-  private
-    def make_destination
-      name = caller_method_name unless name
-      qname = ENV['STOMP_APOLLO'] ? "/queue/test.rubyk01.stomp." + name : "/queue/test/rubyk01/stomp/" + name
-    end
 end
 

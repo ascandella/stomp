@@ -17,10 +17,10 @@ class TestClient < Test::Unit::TestCase
   end
 
   def test_ack_api_works
-    @client.publish destination, message_text, {:suppress_content_length => true}
+    @client.publish make_destination, message_text, {:suppress_content_length => true}
 
     received = nil
-    @client.subscribe(destination, {:ack => 'client'}) {|msg| received = msg}
+    @client.subscribe(make_destination, {:ack => 'client'}) {|msg| received = msg}
     sleep 0.01 until received
     assert_equal message_text, received.body
 
@@ -32,18 +32,18 @@ class TestClient < Test::Unit::TestCase
 
   def test_asynch_subscribe
     received = false
-    @client.subscribe(destination) {|msg| received = msg}
-    @client.publish destination, message_text
+    @client.subscribe(make_destination) {|msg| received = msg}
+    @client.publish make_destination, message_text
     sleep 0.01 until received
 
     assert_equal message_text, received.body
   end
 
   def test_noack
-    @client.publish destination, message_text
+    @client.publish make_destination, message_text
 
     received = nil
-    @client.subscribe(destination, :ack => :client) {|msg| received = msg}
+    @client.subscribe(make_destination, :ack => :client) {|msg| received = msg}
     sleep 0.01 until received
     assert_equal message_text, received.body
     @client.close
@@ -52,7 +52,7 @@ class TestClient < Test::Unit::TestCase
 
     @client = Stomp::Client.new(user, passcode, host, port)
     received2 = nil
-    @client.subscribe(destination) {|msg| received2 = msg}
+    @client.subscribe(make_destination) {|msg| received2 = msg}
     sleep 0.01 until received2
 
     assert_equal message_text, received2.body
@@ -62,11 +62,11 @@ class TestClient < Test::Unit::TestCase
 
   def test_receipts
     receipt = false
-    @client.publish(destination, message_text) {|r| receipt = r}
+    @client.publish(make_destination, message_text) {|r| receipt = r}
     sleep 0.1 until receipt
 
     message = nil
-    @client.subscribe(destination) {|m| message = m}
+    @client.subscribe(make_destination) {|m| message = m}
     sleep 0.1 until message
     assert_equal message_text, message.body
   end
@@ -82,9 +82,9 @@ class TestClient < Test::Unit::TestCase
   end
 
   def test_publish_then_sub
-    @client.publish destination, message_text
+    @client.publish make_destination, message_text
     message = nil
-    @client.subscribe(destination) {|m| message = m}
+    @client.subscribe(make_destination) {|m| message = m}
     sleep 0.01 until message
 
     assert_equal message_text, message.body
@@ -92,17 +92,17 @@ class TestClient < Test::Unit::TestCase
 
   def test_subscribe_requires_block
     assert_raise(RuntimeError) do
-      @client.subscribe destination
+      @client.subscribe make_destination
     end
   end
 
   def test_transactional_publish
     @client.begin 'tx1'
-    @client.publish destination, message_text, :transaction => 'tx1'
+    @client.publish make_destination, message_text, :transaction => 'tx1'
     @client.commit 'tx1'
 
     message = nil
-    @client.subscribe(destination) {|m| message = m}
+    @client.subscribe(make_destination) {|m| message = m}
     sleep 0.01 until message
 
     assert_equal message_text, message.body
@@ -110,25 +110,25 @@ class TestClient < Test::Unit::TestCase
 
   def test_transaction_publish_then_rollback
     @client.begin 'tx1'
-    @client.publish destination, "first_message", :transaction => 'tx1'
+    @client.publish make_destination, "first_message", :transaction => 'tx1'
     @client.abort 'tx1'
 
     @client.begin 'tx1'
-    @client.publish destination, "second_message", :transaction => 'tx1'
+    @client.publish make_destination, "second_message", :transaction => 'tx1'
     @client.commit 'tx1'
 
     message = nil
-    @client.subscribe(destination) {|m| message = m}
+    @client.subscribe(make_destination) {|m| message = m}
     sleep 0.01 until message
     assert_equal "second_message", message.body
   end
 
   def test_transaction_ack_rollback_with_new_client
-    @client.publish destination, message_text
+    @client.publish make_destination, message_text
 
     @client.begin 'tx1'
     message = nil
-    @client.subscribe(destination, :ack => 'client') {|m| message = m}
+    @client.subscribe(make_destination, :ack => 'client') {|m| message = m}
     sleep 0.01 until message
     assert_equal message_text, message.body
     @client.acknowledge message, :transaction => 'tx1'
@@ -138,7 +138,7 @@ class TestClient < Test::Unit::TestCase
     # lets recreate the connection
     teardown
     setup
-    @client.subscribe(destination, :ack => 'client') {|m| message = m}
+    @client.subscribe(make_destination, :ack => 'client') {|m| message = m}
 
     Timeout::timeout(4) do
       sleep 0.01 until message
@@ -151,8 +151,8 @@ class TestClient < Test::Unit::TestCase
     @client.commit 'tx2'
   end
 
-  def test_raise_on_multiple_subscriptions_to_same_destination
-    subscribe_dest = destination
+  def test_raise_on_multiple_subscriptions_to_same_make_destination
+    subscribe_dest = make_destination
     @client.subscribe(subscribe_dest) {|m| nil }
     assert_raise(RuntimeError) do
       @client.subscribe(subscribe_dest) {|m| nil }
@@ -160,7 +160,7 @@ class TestClient < Test::Unit::TestCase
   end
 
   def test_raise_on_multiple_subscriptions_to_same_id
-    subscribe_dest = destination
+    subscribe_dest = make_destination
     @client.subscribe(subscribe_dest, {'id' => 'myid'}) {|m| nil }
     assert_raise(RuntimeError) do
       @client.subscribe(subscribe_dest, {'id' => 'myid'}) {|m| nil }
@@ -168,7 +168,7 @@ class TestClient < Test::Unit::TestCase
   end
 
   def test_raise_on_multiple_subscriptions_to_same_id_mixed
-    subscribe_dest = destination
+    subscribe_dest = make_destination
     @client.subscribe(subscribe_dest, {'id' => 'myid'}) {|m| nil }
     assert_raise(RuntimeError) do
       @client.subscribe(subscribe_dest, {:id => 'myid'}) {|m| nil }
@@ -176,7 +176,7 @@ class TestClient < Test::Unit::TestCase
   end
 
   def  test_asterisk_wildcard_subscribe
-    queue_base_name = destination
+    queue_base_name = make_destination
     queue1 = queue_base_name + ".a"
     queue2 = queue_base_name + ".b"
     send_message = message_text
@@ -206,7 +206,7 @@ class TestClient < Test::Unit::TestCase
   end unless ENV['STOMP_NOWILD']
 
   def test_greater_than_wildcard_subscribe
-    queue_base_name = destination + "."
+    queue_base_name = make_destination + "."
     queue1 = queue_base_name + "foo.a"
     queue2 = queue_base_name + "bar.a"
     queue3 = queue_base_name + "foo.b"
@@ -239,11 +239,11 @@ class TestClient < Test::Unit::TestCase
   end unless ENV['STOMP_NOWILD'] || ENV['STOMP_APOLLO']
 
   def test_transaction_with_client_side_redelivery
-    @client.publish destination, message_text
+    @client.publish make_destination, message_text
 
     @client.begin 'tx1'
     message = nil
-    @client.subscribe(destination, :ack => 'client') { |m| message = m }
+    @client.subscribe(make_destination, :ack => 'client') { |m| message = m }
 
     sleep 0.1 while message.nil?
 
@@ -268,7 +268,7 @@ class TestClient < Test::Unit::TestCase
 
   def test_unsubscribe
     message = nil
-    dest = destination
+    dest = make_destination
     to_send = message_text
     client = Stomp::Client.new(user, passcode, host, port, true)
     assert_nothing_raised {
@@ -298,7 +298,7 @@ class TestClient < Test::Unit::TestCase
 
   def test_thread_one_subscribe
     msg = nil
-    dest = destination
+    dest = make_destination
     Thread.new(@client) do |acli|
       assert_nothing_raised {
         acli.subscribe(dest) { |m| msg = m }
@@ -317,7 +317,7 @@ class TestClient < Test::Unit::TestCase
     #
     lock = Mutex.new
     msg_ctr = 0
-    dest = destination
+    dest = make_destination
     1.upto(@max_threads) do |tnum|
       # Threads within threads .....
       Thread.new(@client) do |acli|
@@ -355,10 +355,5 @@ class TestClient < Test::Unit::TestCase
     def message_text
       name = caller_method_name unless name
       "test_client#" + name
-    end
-
-    def destination
-      name = caller_method_name unless name
-      qname = ENV['STOMP_APOLLO'] ? "/queue/test.ruby.stomp." + name : "/queue/test/ruby/stomp/" + name
     end
 end

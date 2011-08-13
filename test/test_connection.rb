@@ -264,12 +264,5 @@ class TestStomp < Test::Unit::TestCase
     assert_equal "txn message", msg.body
   end
 
-  private
-
-    def make_destination
-      name = caller_method_name unless name
-      qname = ENV['STOMP_APOLLO'] ? "/queue/test.ruby.stomp." + name : "/queue/test/ruby/stomp/" + name
-    end
-
 end
 

@@ -34,5 +34,13 @@ module TestBase
       [file, line, method]
     end
   end
+
+  # Test helper methods
+
+  def make_destination
+    name = caller_method_name unless name
+    qname = ENV['STOMP_APOLLO'] ? "/queue/test.ruby.stomp." + name : "/queue/test/ruby/stomp/" + name
+  end
+
 end
 
