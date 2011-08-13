@@ -248,31 +248,28 @@ class TestStomp < Test::Unit::TestCase
     assert_equal "", msg.body    
   end
 
+  def test_transaction
+    @conn.subscribe make_destination
+
+    @conn.begin "txA"
+    @conn.publish make_destination, "txn message", 'transaction' => "txA"
+
+    @conn.publish make_destination, "first message"
+
+    msg = @conn.receive
+    assert_equal "first message", msg.body
+
+    @conn.commit "txA"
+    msg = @conn.receive
+    assert_equal "txn message", msg.body
+  end
+
   private
+
     def make_destination
       name = caller_method_name unless name
       qname = ENV['STOMP_APOLLO'] ? "/queue/test.ruby.stomp." + name : "/queue/test/ruby/stomp/" + name
     end
 
-    def _test_transaction
-      @conn.subscribe make_destination
-
-      # Drain the destination.
-      sleep 0.01 while
-      sleep 0.01 while @conn.poll!=nil
-
-      @conn.begin "tx1"
-      @conn.publish make_destination, "txn message", 'transaction' => "tx1"
-
-      @conn.publish make_destination, "first message"
-
-      sleep 0.01
-      msg = @conn.receive
-      assert_equal "first message", msg.body
-
-      @conn.commit "tx1"
-      msg = @conn.receive
-      assert_equal "txn message", msg.body
-    end
 end
 
