@@ -392,6 +392,7 @@ module Stomp
             begin
               message_header += line
               line = read_socket.gets
+              return nil if line.nil?
             end until line =~ /^\s?\n$/
 
             # Checks if it includes content_length header
