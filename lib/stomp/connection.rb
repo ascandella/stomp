@@ -390,7 +390,7 @@ module Stomp
             message_header = ''
             line = ''
             begin
-              message_header += line
+              message_header << line
               line = read_socket.gets
               return nil if line.nil?
             end until line =~ /^\s?\n$/
@@ -406,7 +406,7 @@ module Stomp
               raise Stomp::Error::InvalidMessageLength unless parse_char(read_socket.getc) == "\0"
             # Else reads, the rest of the message until the first \0
             else
-              message_body += char while (char = parse_char(read_socket.getc)) != "\0"
+              message_body << char while (char = parse_char(read_socket.getc)) != "\0"
             end
 
             # Adds the excluded \n and \0 and tries to create a new message with it
